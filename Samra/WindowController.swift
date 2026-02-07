@@ -67,11 +67,10 @@ class WindowController: NSWindowController, NSWindowDelegate {
         case .assetCatalog(let input):
             let toolbar = NSToolbar()
             toolbar.delegate = self
+            toolbar.displayMode = .iconOnly
             window.toolbar = toolbar
-            toolbar.insertItem(withItemIdentifier: .flexibleSpace, at: 0)
+            toolbar.insertItem(withItemIdentifier: .infoButton, at: 0)
             toolbar.insertItem(withItemIdentifier: .searchBar, at: 1)
-            toolbar.insertItem(withItemIdentifier: .init("infoButton"), at: 2)
-            window.toolbar?.centeredItemIdentifier = .searchBar
             window.animationBehavior = .documentWindow
             window.delegate = self
             window.title = input.fileURL.lastPathComponent
@@ -120,25 +119,24 @@ extension WindowController: NSToolbarDelegate {
                 rendVC = contentViewController as? NSSearchFieldDelegate
             }
             
-            /*
             if #available(macOS 11, *) {
                 let item = NSSearchToolbarItem(itemIdentifier: .searchBar)
                 item.searchField.delegate = rendVC
                 return item
             }
-             */
-            
-            let item = NSToolbarItem(itemIdentifier: .searchBar)
-            let searchField = NSSearchField()
-            searchField.delegate = rendVC
-            item.view = searchField
-            return item
-        case .init("infoButton"):
+            else {
+                let item = NSToolbarItem(itemIdentifier: .searchBar)
+                let searchField = NSSearchField()
+                searchField.delegate = rendVC
+                item.view = searchField
+                return item
+            }
+        case .infoButton:
             let toolbarItem = NSToolbarItem(itemIdentifier: itemIdentifier)
             let button = NSButton()
             if #available(macOS 11, *) {
                 button.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)?
-                    .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 18, weight: .regular))
+                    .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 15, weight: .regular))
             } else {
                 button.title = "Info"
             }
@@ -147,15 +145,12 @@ extension WindowController: NSToolbarDelegate {
             button.setButtonType(.momentaryPushIn)
             button.bezelStyle = .texturedRounded
             toolbarItem.view = button
+            toolbarItem.label = "Info"
             
 //            toolbarItem.action = #selector(RenditionListViewController.infoPopoverItemClicked(sender:))
 //            toolbarItem.target = (contentViewController as? NSSplitViewController)?.splitViewItems[1].viewController as? RenditionListViewController
 //            toolbarItem.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
 //            toolbarItem.isEnabled = true
-            return toolbarItem
-        case .init("flexSpace"):
-            #warning("Fix this (want flexible space between search bar and sidebar)")
-            let toolbarItem = NSToolbarItem(itemIdentifier: NSToolbarItem.Identifier(rawValue: "flexSpace"))
             return toolbarItem
         default:
             return NSToolbarItem(itemIdentifier: itemIdentifier)
