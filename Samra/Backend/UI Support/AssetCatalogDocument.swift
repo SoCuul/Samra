@@ -20,6 +20,10 @@ class AssetCatalogDocument: NSDocument {
             }
         }
         
+        if let openPanel = NSApp.modalWindow as? NSOpenPanel {
+            openPanel.cancel(nil)
+        }
+        
         let windowController = WindowController(kind: .assetCatalog(try AssetCatalogInput(fileURL: url)))
         addWindowController(windowController)
         windowController.showWindow(nil)
