@@ -433,6 +433,22 @@ extension RenditionListViewController: NSCollectionViewDelegate {
             // item is no longer in focus, set it's border width to the standard amount 
             layer?.borderWidth = 1.87
         }
+        
+        guard let parent = splitViewParent else { return }
+        
+        // if we already have an existing info vc then remove it
+        if parent.splitViewItems.count == 3 {
+            parent.removeSplitViewItem(parent.splitViewItems[2])
+        }
+        
+        // reset layout to horizontal
+        collectionView.collectionViewLayout = Self.makeLayout(layout: .horizontal)
+        collectionView.identifier = "HorizLayout"
+        
+        // scroll back here because switching between layouts may cause the item to not be visible
+        // in the new layout
+        collectionView.scrollToItems(at: indexPaths,
+                                     scrollPosition: [.centeredVertically, .centeredHorizontally])
     }
     
     override func performTextFinderAction(_ sender: Any?) {
