@@ -22,6 +22,7 @@ extension NSUserInterfaceItemIdentifier: ExpressibleByStringLiteral {
 
 extension NSToolbarItem.Identifier {
     static let searchBar = NSToolbarItem.Identifier("SearchBar")
+    static let infoButton = NSToolbarItem.Identifier("InfoButton")
 }
 
 extension NSMenu {

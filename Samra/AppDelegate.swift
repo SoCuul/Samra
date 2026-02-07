@@ -114,6 +114,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         NSMenuItem(title: "Stop Speaking", action: #selector(NSTextView.stopSpeaking(_:))),
                     ]),
             ]),
+            NSMenuItem(submenuTitle: "View", items: [
+                NSMenuItem(title: "Get Info", action: #selector(RenditionListViewController.infoButtonClicked(sender:)), keyEquivalent: "i"),
+                NSMenuItem.separator(),
+            ]),
             NSMenuItem(submenuTitle: "Sections", items: items),
             NSMenuItem(submenuTitle: "Help", items: [
                 NSMenuItem(title: "Help", action: #selector(NSApplication.showHelp(_:)), keyEquivalent: "?")
