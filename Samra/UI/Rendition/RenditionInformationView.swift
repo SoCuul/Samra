@@ -41,7 +41,7 @@ struct RenditionInformationView: View {
                                                      forType: .tiff)
                     }
                     
-                    Button("Save Image As..") {
+                    Button("Save Image As...") {
                         let panel = NSSavePanel()
                         panel.nameFieldStringValue = rendition.cuiRend.name()
                         
