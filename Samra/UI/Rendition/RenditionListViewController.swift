@@ -168,7 +168,6 @@ class RenditionListViewController: NSViewController {
         if let observer = scrollObserver {
             NotificationCenter.default.removeObserver(observer)
         }
-        print("And I'm tripping and falling..")
     }
 }
 
