@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build
         run: |
           xcodebuild build -scheme Samra -project Samra.xcodeproj -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO BUILD_DIR=${{ github.workspace }}/xcodebuild
@@ -28,7 +28,7 @@ jobs:
           zip -r ${{ github.workspace }}/Samra.zip .
           
       - name: Upload app to artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Samra
           path: ${{ github.workspace }}/Samra.zip
