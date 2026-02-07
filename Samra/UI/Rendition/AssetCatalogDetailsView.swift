@@ -43,6 +43,13 @@ struct AssetCatalogDetailsView: View {
         Spacer()
         Divider()
         Button("Done", action: doneCallback)
-            .frame(height: 35, alignment: .center)
+            .padding(EdgeInsets(top: 11.5, leading: 0, bottom: 20, trailing: 0))
+            .modifier { view in
+                if #available(macOS 11, *) {
+                    view.keyboardShortcut(.defaultAction)
+                } else {
+                    view
+                }
+            }
     }
 }
