@@ -193,7 +193,7 @@ extension RenditionListViewController {
         
         let titleHeaderSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
-            heightDimension: .absolute(50)
+            heightDimension: .absolute(82)
         )
         
         let titleSupplementary = NSCollectionLayoutBoundarySupplementaryItem(
@@ -205,9 +205,9 @@ extension RenditionListViewController {
         
         let section = NSCollectionLayoutSection(group: group)
         section.interGroupSpacing = spacing
-        section.contentInsets = NSDirectionalEdgeInsets(top: 20,
+        section.contentInsets = NSDirectionalEdgeInsets(top: 0,
                                                         leading: spacing,
-                                                        bottom: 20,
+                                                        bottom: 12,
                                                         trailing: spacing)
         section.boundarySupplementaryItems = [titleSupplementary]
         //section.orthogonalScrollingBehavior = .continuous
