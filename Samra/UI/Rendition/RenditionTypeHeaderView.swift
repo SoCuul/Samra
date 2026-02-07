@@ -35,10 +35,11 @@ class RenditionTypeHeaderView: NSView, NSCollectionViewElement {
         
         NSLayoutConstraint.activate([
             typeLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
-            typeLabel.topAnchor.constraint(equalTo: topAnchor),
+            typeLabel.topAnchor.constraint(equalTo: topAnchor, constant: 5),
             
             amountOfItemsLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
-            amountOfItemsLabel.centerXAnchor.constraint(equalTo: typeLabel.centerXAnchor, constant: -30)
+            amountOfItemsLabel.centerXAnchor.constraint(equalTo: typeLabel.centerXAnchor, constant: -30),
+            amountOfItemsLabel.topAnchor.constraint(equalTo: typeLabel.bottomAnchor, constant: 7)
         ])
     }
     
