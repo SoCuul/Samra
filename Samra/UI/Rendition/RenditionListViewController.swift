@@ -239,6 +239,21 @@ extension RenditionListViewController: MenuProvider {
         }
     }
     
+    static private func _promptToExportItem(rendition: Rendition) {
+        guard let exportData = Rendition.ExportData.init(rendition) else { return }
+        
+        let savePanel = NSSavePanel()
+        savePanel.nameFieldStringValue = rendition.sanitizedFilename(exportData.fileExtension)
+        guard savePanel.runModal() == .OK, let urlToSaveTo = savePanel.url else { return }
+        
+        do {
+            try rendition.extract(to: urlToSaveTo)
+        } catch {
+            NSAlert(title: error.localizedDescription)
+                .runModal()
+        }
+    }
+    
     func collectionView(_ collectionView: NSCollectionView, menuForItemAt indexPath: IndexPath) -> NSMenu? {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
         let copyName = ClosureMenuItem(title: "Copy Name") {
@@ -266,19 +281,30 @@ extension RenditionListViewController: MenuProvider {
                 }
             ]
             
-            if item.type == .svg, let svgDoc = item.cuiRend.svgDocument() {
+            if item.type == .svg {
                 let asSVG = ClosureMenuItem(title: "SVG") {
-                    let savePanel = NSSavePanel()
-                    savePanel.nameFieldStringValue = "image.svg"
-                    guard savePanel.runModal() == .OK, let urlToSaveTo = savePanel.url else { return }
-                    CGSVGDocumentWriteToURL(svgDoc, urlToSaveTo as CFURL, nil)
+                    Self._promptToExportItem(rendition: item)
                 }
                 
                 saveImageAsItems.insert(asSVG, at: 0)
             }
+                
+            if item.type == .pdf {
+                let asPDF = ClosureMenuItem(title: "PDF") {
+                    Self._promptToExportItem(rendition: item)
+                }
+                
+                saveImageAsItems.insert(asPDF, at: 0)
+            }
             
             let saveImageAs = NSMenuItem(submenuTitle: "Save Image As...", items: saveImageAsItems)
             items.insert(saveImageAs, at: 0)
+            items.insert(.separator(), at: 1)
+                
+            let exportItem = ClosureMenuItem(title: "Export Item") {
+                Self._promptToExportItem(rendition: item)
+            }
+            items.insert(exportItem, at: 0)
             items.insert(.separator(), at: 1)
         default:
             break
