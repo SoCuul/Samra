@@ -164,6 +164,26 @@ class RenditionListViewController: NSViewController {
         }
     }
     
+    func deselect() {
+        guard let parent = splitViewParent else {
+            return
+        }
+        
+        // deselect current item
+        self.collectionView.deselectAll(nil)
+        
+        // if we already have an existing info vc then remove it
+        if parent.splitViewItems.count == 3 {
+            parent.removeSplitViewItem(parent.splitViewItems[2])
+        }
+        
+        // reset layout to horizontal
+        if let renditionListVC = parent.splitViewItems[1].viewController as? RenditionListViewController {
+            renditionListVC.collectionView.collectionViewLayout = Self.makeLayout(layout: .vertical)
+            renditionListVC.identifier = "VerticalLayout"
+        }
+    }
+    
     deinit {
         if let observer = scrollObserver {
             NotificationCenter.default.removeObserver(observer)

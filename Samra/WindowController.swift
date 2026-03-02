@@ -10,6 +10,8 @@ import AssetCatalogWrapper
 
 class WindowController: NSWindowController, NSWindowDelegate {
     
+    var inputMonitor: Any?
+    
     enum Kind {
         /// The 'Welcome to Samra' screen
         case welcome
@@ -29,6 +31,8 @@ class WindowController: NSWindowController, NSWindowDelegate {
     
     convenience init(kind: Kind) {
         let viewController: NSViewController
+        
+        var localInputMonitor: Any?
         
         switch kind {
         case .welcome:
@@ -51,6 +55,15 @@ class WindowController: NSWindowController, NSWindowDelegate {
             splitViewController.addSplitViewItem(NSSplitViewItem(sidebarWithViewController: typesSidebar))
             splitViewController.addSplitViewItem(NSSplitViewItem(viewController: renditionVC))
             viewController = splitViewController
+                
+            localInputMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                // Handle esc keypress
+                if event.keyCode == 53 {
+                    renditionVC.deselect()
+                    return nil
+                }
+                else { return event }
+            }
         case .aboutPanel:
             viewController = AboutViewController()
         case .diffSelection:
@@ -62,6 +75,8 @@ class WindowController: NSWindowController, NSWindowDelegate {
         let window = NSWindow(contentViewController: viewController)
         window.styleMask.insert(.fullSizeContentView)
         self.init(window: window)
+        
+        self.inputMonitor = localInputMonitor
         
         switch kind {
         case .assetCatalog(let input):
@@ -95,6 +110,12 @@ class WindowController: NSWindowController, NSWindowDelegate {
             toolbar.insertItem(withItemIdentifier: .searchBar, at: 1)
             window.animationBehavior = .documentWindow
             window.delegate = self
+        }
+    }
+    
+    deinit {
+        if let monitor = inputMonitor {
+            NSEvent.removeMonitor(monitor)
         }
     }
 }
