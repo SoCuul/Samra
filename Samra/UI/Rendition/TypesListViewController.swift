@@ -118,6 +118,8 @@ class TypesListViewController: NSViewController {
     @objc
     func goToSection(menuItemSender: NSMenuItem) {
         changeSection(to: menuItemSender.tag)
+        
+        tableView.selectRowIndexes(IndexSet(integer: menuItemSender.tag), byExtendingSelection: false)
     }
 }
 
