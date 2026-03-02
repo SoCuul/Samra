@@ -12,6 +12,8 @@ import AssetCatalogWrapper
 // (because this app is my first attempt at AppKit and I didn't really know how to do NSDocument)..
 // but adjusted for Samra
 class AssetCatalogDocument: NSDocument {
+    override class var autosavesInPlace: Bool { true }
+    
     override func read(from url: URL, ofType typeName: String) throws {
         // close the welcome view controller if opened
         for window in NSApplication.shared.windows {
