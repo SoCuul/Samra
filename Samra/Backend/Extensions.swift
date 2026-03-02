@@ -137,6 +137,35 @@ public extension NSUserInterfaceItemIdentification {
     }
 }
 
+extension CGColor {
+    func toRGBA() -> [Int] {
+        let nsColor = NSColor(cgColor: self)?.usingColorSpace(.deviceRGB)
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        nsColor?.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        
+        return [
+            lroundf(Float(red) * 255),
+            lroundf(Float(green) * 255),
+            lroundf(Float(blue) * 255),
+            lroundf(Float(alpha) * 255)
+        ]
+    }
+    func toHexString() -> String {
+        let rgba = toRGBA()
+        
+        // Check if color is opaque
+        if rgba[3] == 255 {
+            return String(format: "#%02lX%02lX%02lX", rgba[0], rgba[1], rgba[2])
+        }
+        else {
+            return String(format: "#%02lX%02lX%02lX%02lX", rgba[0], rgba[1], rgba[2], rgba[3])
+        }
+    }
+}
+
 // PrivateKits Extensions
 
 extension Rendition {

@@ -306,6 +306,40 @@ extension RenditionListViewController: MenuProvider {
             }
             items.insert(exportItem, at: 0)
             items.insert(.separator(), at: 1)
+        case .color(let cgColor):
+            let copyColor = ClosureMenuItem(title: "Copy Color") {
+                let pb = NSPasteboard.general
+                pb.clearContents()
+
+                // Write as NSColor (supports other apps that can read NSColor)
+                if let color = NSColor(cgColor: cgColor) {
+                    pb.writeObjects([color])
+                }
+
+                // Alternative: also write as hex string for apps that expect text
+                pb.setString(cgColor.toHexString(), forType: .string)
+            }
+            let copyRGB = ClosureMenuItem(title: "Copy RGB Values") {
+                let rgba = cgColor.toRGBA()
+                
+                // Check if color is opaque
+                var rgbaStr = ""
+                print(rgba)
+                if rgba[3] == 255 {
+                    rgbaStr = "rgb(\(rgba[0]), \(rgba[1]), \(rgba[2]))"
+                }
+                else {
+                    rgbaStr = "rgba(\(rgba[0]), \(rgba[1]), \(rgba[2]), \(rgba[3]))"
+                }
+                
+                let pb = NSPasteboard.general
+                pb.clearContents()
+                pb.setString(rgbaStr, forType: .string)
+            }
+                
+            items.insert(copyColor, at: 0)
+            items.insert(copyRGB, at: 1)
+            items.insert(.separator(), at: 2)
         default:
             break
         }

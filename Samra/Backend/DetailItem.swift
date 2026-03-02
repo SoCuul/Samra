@@ -102,15 +102,6 @@ struct DetailItemSection: Hashable {
             var alpha: CGFloat = 0
             nsColor?.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
                 
-            // get hex color
-            var hexCode = ""
-            if alpha != 1 {
-                hexCode = String(format: "#%02lX%02lX%02lX%02lX", lroundf(Float(red) * 255), lroundf(Float(green) * 255), lroundf(Float(blue) * 255), lroundf(Float(alpha) * 255))
-            }
-            else {
-                hexCode = String(format: "#%02lX%02lX%02lX", lroundf(Float(red) * 255), lroundf(Float(green) * 255), lroundf(Float(blue) * 255))
-            }
-                
             var colorItems = [
                 DetailItem(primaryText: "Red", secondaryText: Int(red * 255)),
                 DetailItem(primaryText: "Green", secondaryText: Int(green * 255)),
@@ -121,7 +112,7 @@ struct DetailItemSection: Hashable {
                 colorItems.append(DetailItem(primaryText: "Alpha", secondaryText: Int(alpha * 255)))
             }
             
-            colorItems.append(DetailItem(primaryText: "HEX Code", secondaryText: hexCode))
+            colorItems.append(DetailItem(primaryText: "HEX Code", secondaryText: cgColor.toHexString()))
 
             items.append(DetailItemSection(sectionHeader: "Color Attributes", items: colorItems))
 
