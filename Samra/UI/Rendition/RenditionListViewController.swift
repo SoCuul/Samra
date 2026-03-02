@@ -426,8 +426,15 @@ extension RenditionListViewController: NSCollectionViewDelegate {
         
         let renditionVC = NSHostingController(rootView: view)
         renditionVC.identifier = "RenditionInfo"
-        let splitViewItem = NSSplitViewItem(contentListWithViewController: renditionVC)
         splitViewItem.minimumThickness = 400
+        
+        let splitViewItem: NSSplitViewItem
+        if #available(macOS 11, *) {
+            splitViewItem = NSSplitViewItem(inspectorWithViewController: renditionVC)
+        }
+        else {
+            splitViewItem = NSSplitViewItem(contentListWithViewController: renditionVC)
+        }
         splitViewItem.canCollapse = true
         splitViewItem.maximumThickness = 600
         splitViewItem.automaticMaximumThickness = 600
