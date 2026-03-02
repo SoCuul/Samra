@@ -9,6 +9,7 @@ import Cocoa
 import SwiftUI
 import AssetCatalogWrapper
 import UniformTypeIdentifiers
+import SVGWrapper
 
 @available(macOS 11, *)
 extension UTType {
@@ -132,6 +133,131 @@ public extension NSUserInterfaceItemIdentification {
         }
         set {
             self.identifier = NSUserInterfaceItemIdentifier(newValue)
+        }
+    }
+}
+
+// PrivateKits Extensions
+
+extension Rendition {
+    fileprivate func showStringError (_ details: String) {
+        NSAlert(title: details.localizedLowercase)
+            .runModal()
+    }
+    fileprivate static func showStringError (_ prefix: String, _ details: String) {
+        NSAlert(title: "\(prefix): \(details.localizedLowercase)")
+            .runModal()
+    }
+    
+    public enum ExportData: Hashable {
+        case image(CGImage)
+        case pdf(NSData)
+        case svg(String)
+        
+        public init?(_ rendition: Rendition) {
+            switch rendition.type {
+                case .image, .icon, .imageSet:
+                    if let cgImage = rendition.cuiRend.uncroppedImage()?.takeUnretainedValue() {
+                        self = .image(cgImage)
+                    }
+                    else {
+                        return nil
+                    }
+                    
+                case .pdf:
+                    if let data = rendition.cuiRend.srcData {
+                        self = .pdf(data as NSData)
+                    }
+                    else {
+                        showStringError(rendition.cuiRend.name(), "Failed to get PDF data")
+                        return nil
+                    }
+                    
+                case .svg:
+                    // Calling CUIThemeRendition.svgDocument() can sometimes cause a segfault
+                    // Not exactly sure why, but this works perfectly fine instead
+                    // Gotta love some good ol' KVC :)
+                    let fileData = rendition.cuiRend.value(forKey: "_fileData") as? Data
+
+                    if let data = fileData {
+                        self = .svg(String(decoding: data, as: UTF8.self))
+                    }
+                    else {
+                        showStringError(rendition.cuiRend.name(), "Failed to get SVG data")
+                        return nil
+                    }
+                    
+                default:
+                    return nil
+            }
+        }
+        
+        public var fileType: CFString {
+            switch self {
+                case .image:
+                    return kUTTypePNG
+                case .pdf:
+                    return kUTTypePDF
+                case .svg:
+                    return kUTTypeScalableVectorGraphics
+            }
+        }
+        
+        public var fileExtension: String {
+            switch self {
+                case .image:
+                    return "png"
+                case .pdf:
+                    return "pdf"
+                case .svg:
+                    return "svg"
+            }
+        }
+    }
+    
+    public func sanitizedFilename(_ fileExtension: String) -> String {
+        if cuiRend.name().hasSuffix(".\(fileExtension)") {
+            return cuiRend.name()
+        }
+        else {
+            return "\(cuiRend.name()).\(fileExtension)"
+        }
+    }
+    
+    public func extract(to destinationURL: URL) throws {
+        guard let exportData = ExportData.init(self) else { return }
+        
+        switch exportData {
+        case .image(let cgImage):
+                guard let image = self.image else {
+                return showStringError("Failed to generate image")
+            }
+            
+            #if os(macOS)
+                let rep = NSBitmapImageRep(cgImage: image)
+                let data = rep.representation(using: .png, properties: [.compressionFactor: 1])
+            #else
+                let data = UIImage(cgImage: image).pngData()
+            #endif
+            
+            guard let data = data else {
+                showStringError("Unable to generate png data for image")
+                return
+            }
+            
+            do {
+                try data.write(to: destinationURL, options: .atomic)
+            } catch {
+                showStringError("Failed to write to \(destinationURL.path): \(error)")
+            }
+        case .pdf(let data):
+            do {
+                try data.write(to: destinationURL)
+            } catch {
+                showStringError("Unable to write to \(destinationURL.path): \(error.localizedDescription)")
+            }
+        case .svg(let data):
+            SVGDocument(string: data)?.write(to: destinationURL)
         }
     }
 }

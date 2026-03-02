@@ -121,22 +121,6 @@ class RenditionListViewController: NSViewController {
         collectionView.setDraggingSourceOperationMask(.every, forLocal: false)
     }
     
-    func collectionView(_ collectionView: NSCollectionView, canDragItemsAt indexPaths: Set<IndexPath>, with event: NSEvent) -> Bool {
-        return true
-    }
-    
-    func collectionView(_ collectionView: NSCollectionView, pasteboardWriterForItemAt indexPath: IndexPath) -> NSPasteboardWriting? {
-//        return dataSource.itemIdentifier(for: indexPath)?.name as? NSString
-        switch dataSource.itemIdentifier(for: indexPath)?.representation {
-        case .image(let cgImage):
-            return NSImage(cgImage: cgImage, size: cgImage.size)
-        default:
-            return nil
-        }
-    }
-    
-    func collectionView(_ collectionView: NSCollectionView, draggingSession session: NSDraggingSession, endedAt screenPoint: NSPoint, dragOperation operation: NSDragOperation) {}
-    
     @discardableResult
     func addSnapshot(collectionToAdd: RenditionCollection) -> NSDiffableDataSourceSnapshot<RenditionType, Rendition> {
         var snapshot = NSDiffableDataSourceSnapshot<RenditionType, Rendition>()
@@ -394,7 +378,8 @@ extension RenditionListViewController {
     }
 }
 
-extension RenditionListViewController: NSCollectionViewDelegate {
+extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromiseProviderDelegate {
+    // MARK: Item selection
     func collectionView(_ collectionView: NSCollectionView, shouldSelectItemsAt indexPaths: Set<IndexPath>) -> Set<IndexPath> {
         return [indexPaths.first!]
     }
@@ -469,23 +454,73 @@ extension RenditionListViewController: NSCollectionViewDelegate {
         }
     }
     
-    /*
-    func collectionView(_ collectionView: NSCollectionView,
-                        canDragItemsAt indexPaths: Set<IndexPath>, with event: NSEvent) -> Bool {
-        return indexPaths.allSatisfy { [unowned self] indxPath in
-            switch dataSource.itemIdentifier(for: indxPath)?.type {
-            case .image, .icon:
-                return true
-            default:
-                return false
-            }
-        }
+    // MARK: Item dragging
+    private struct FilePromiseInfo {
+        let rendition: Rendition
+        let exportData: Rendition.ExportData
     }
     
-    func collectionView(_ collectionView: NSCollectionView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forItemsAt indexPaths: Set<IndexPath>) {
-        print(#function)
+    func collectionView(_ collectionView: NSCollectionView, canDragItemsAt indexPaths: Set<IndexPath>, with event: NSEvent) -> Bool {
+        return true
     }
-     */
+    
+    func collectionView(
+        _ collectionView: NSCollectionView,
+        draggingSession session: NSDraggingSession,
+        endedAt screenPoint: NSPoint,
+        dragOperation operation: NSDragOperation
+    ) {}
+    
+    func collectionView(
+        _ collectionView: NSCollectionView,
+        pasteboardWriterForItemAt indexPath: IndexPath
+    ) -> NSPasteboardWriting?
+    {
+        guard let rendition = dataSource.itemIdentifier(for: indexPath) else { return nil }
+
+        if case let .color(cgColor) = rendition.representation {
+            return NSColor(cgColor: cgColor)
+        }
+            
+        // Dragging files require promise providers to handle writing the file
+        guard let exportData = Rendition.ExportData.init(rendition) else { return nil }
+        
+        let promiseInfo = FilePromiseInfo(rendition: rendition, exportData: exportData)
+        
+        let provider = NSFilePromiseProvider(fileType: exportData.fileType as String, delegate: self)
+        provider.userInfo = promiseInfo
+        return provider
+    }
+
+    func filePromiseProvider(
+        _ filePromiseProvider: NSFilePromiseProvider,
+        fileNameForType fileType: String
+    ) -> String
+    {
+        let promiseInfo = (filePromiseProvider.userInfo as! FilePromiseInfo)
+        
+        return promiseInfo.rendition.sanitizedFilename(promiseInfo.exportData.fileExtension)
+    }
+
+    func filePromiseProvider(
+        _ filePromiseProvider: NSFilePromiseProvider,
+        writePromiseTo url: URL,
+        completionHandler: @escaping (Error?) -> Void
+    ) {
+        if let promiseInfo = filePromiseProvider.userInfo as? FilePromiseInfo {
+            
+            do {
+                try promiseInfo.rendition.extract(to: url)
+            }
+            catch {
+                NSAlert(title: error.localizedDescription)
+                    .runModal()
+            }
+            
+            completionHandler(nil)
+            
+        }
+    }
 }
 
 extension RenditionListViewController: NSSearchFieldDelegate {
