@@ -33,7 +33,7 @@ class DiffListViewController: NSViewController {
     override func loadView() {
         let collectionView = NSCollectionView()
         collectionView.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.collectionViewLayout = RenditionListViewController.makeLayout(layout: .horizontal)
+        collectionView.collectionViewLayout = RenditionListViewController.makeLayout(layout: .list)
         
         dataSource = DataSource(collectionView: collectionView) { collectionView, indexPath, rendition in
             let cell = collectionView.makeItem(withIdentifier: RenditionCollectionViewItem.reuseIdentifier,

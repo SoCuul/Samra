@@ -73,6 +73,7 @@ class WindowController: NSWindowController, NSWindowDelegate {
         }
         
         let window = NSWindow(contentViewController: viewController)
+        window.minSize = NSSize(width: 874, height: 264)
         window.styleMask.insert(.fullSizeContentView)
         self.init(window: window)
         

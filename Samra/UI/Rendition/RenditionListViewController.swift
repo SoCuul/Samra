@@ -74,8 +74,8 @@ class RenditionListViewController: NSViewController {
         collectionView.isSelectable = true
         collectionView.delegate = self
         collectionView.menuProvider = self
-        collectionView.collectionViewLayout = Self.makeLayout(layout: .horizontal)
-        collectionView.identifier = "HorizLayout"
+        collectionView.collectionViewLayout = Self.makeLayout(layout: .list)
+        collectionView.stringIdentifier = LayoutMode.list.rawValue
         
         collectionView.register(RenditionCollectionViewItem.self,
                                 forItemWithIdentifier: RenditionCollectionViewItem.reuseIdentifier)
@@ -87,10 +87,10 @@ class RenditionListViewController: NSViewController {
         splitViewParent?.handler = { [unowned self] item, didCollapse, _ in
             guard item.viewController.identifier == "RenditionInfo" else { return }
             collectionView.collectionViewLayout = Self.makeLayout(
-                layout: didCollapse ? .horizontal : .vertical
+                layout: didCollapse ? .list : .listInspector
             )
             
-            collectionView.identifier = didCollapse ? "HorizLayout" : "VerticalLayout"
+            collectionView.stringIdentifier = didCollapse ? LayoutMode.list.rawValue : LayoutMode.listInspector.rawValue
         }
         
         let scrollView = NSScrollView()
@@ -177,10 +177,10 @@ class RenditionListViewController: NSViewController {
             parent.removeSplitViewItem(parent.splitViewItems[2])
         }
         
-        // reset layout to horizontal
+        // reset to non-inspector layout
         if let renditionListVC = parent.splitViewItems[1].viewController as? RenditionListViewController {
-            renditionListVC.collectionView.collectionViewLayout = Self.makeLayout(layout: .vertical)
-            renditionListVC.identifier = "VerticalLayout"
+            renditionListVC.collectionView.collectionViewLayout = Self.makeLayout(layout: .list)
+            renditionListVC.stringIdentifier = LayoutMode.list.rawValue
         }
     }
     
@@ -193,23 +193,26 @@ class RenditionListViewController: NSViewController {
 
 extension RenditionListViewController {
     static func makeLayout(layout: LayoutMode) -> NSCollectionViewCompositionalLayout {
-        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
-                                              heightDimension: .fractionalHeight(1.0))
-        let item = NSCollectionLayoutItem(layoutSize: itemSize)
+        // Items
+        let spacing = CGFloat(15)
+        let minItemWidth = CGFloat(layout == .listInspector ? 295 : 355)
+
         let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
                                                heightDimension: .absolute(115))
-        
-        let group: NSCollectionLayoutGroup
-        switch layout {
-        case .vertical:
-            group = .vertical(layoutSize: groupSize, subitems: [item]/*, count: 3*/)
-        case .horizontal:
-            group = .horizontal(layoutSize: groupSize, subitem: item, count: 3)
+    
+        let group = NSCollectionLayoutGroup.custom(layoutSize: groupSize) { environment in
+            let availableWidth = environment.container.effectiveContentSize.width - (spacing * 2)
+            let columns = max(1, floor(availableWidth / (minItemWidth + spacing)))
+            let itemWidth = (availableWidth - (columns - 1) * spacing) / columns
+            return (0..<Int(columns)).map { i in
+                NSCollectionLayoutGroupCustomItem(
+                    frame: CGRect(x: CGFloat(i) * (itemWidth + spacing), y: 0,
+                                  width: itemWidth, height: groupSize.heightDimension.dimension)
+                )
+            }
         }
         
-        let spacing = CGFloat(15)
-        group.interItemSpacing = .fixed(spacing)
-        
+        // Sections
         let titleHeaderSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
             heightDimension: .absolute(82)
@@ -220,7 +223,6 @@ extension RenditionListViewController {
             elementKind: NSCollectionView.elementKindSectionHeader,
             alignment: .topTrailing
         )
-        
         
         let section = NSCollectionLayoutSection(group: group)
         section.interGroupSpacing = spacing
@@ -386,9 +388,9 @@ extension RenditionListViewController {
 
 extension RenditionListViewController {
     // MARK: - Layout
-    enum LayoutMode {
-        case vertical
-        case horizontal
+    enum LayoutMode: String {
+        case list = "ListLayout"
+        case listInspector = "ListInspectorLayout"
     }
 }
 
@@ -426,7 +428,6 @@ extension RenditionListViewController: NSCollectionViewDelegate {
         
         let renditionVC = NSHostingController(rootView: view)
         renditionVC.identifier = "RenditionInfo"
-        splitViewItem.minimumThickness = 400
         
         let splitViewItem: NSSplitViewItem
         if #available(macOS 11, *) {
@@ -435,21 +436,19 @@ extension RenditionListViewController: NSCollectionViewDelegate {
         else {
             splitViewItem = NSSplitViewItem(contentListWithViewController: renditionVC)
         }
+        splitViewItem.minimumThickness = 340
         splitViewItem.canCollapse = true
-        splitViewItem.maximumThickness = 600
-        splitViewItem.automaticMaximumThickness = 600
+        splitViewItem.maximumThickness = 690
+        splitViewItem.automaticMaximumThickness = 690
         splitViewItem.preferredThicknessFraction = 2
         
         parent.addSplitViewItem(splitViewItem)
         
-        if collectionView.identifier == "HorizLayout" {
-            collectionView.collectionViewLayout = Self.makeLayout(layout: .vertical)
-            collectionView.identifier = "VerticalLayout"
-            // scroll back here because switching between layouts may cause the item to not be visible
-            // in the new layout
-            collectionView.scrollToItems(at: indexPaths,
-                                         scrollPosition: [.centeredVertically, .centeredHorizontally])
-        }
+        collectionView.collectionViewLayout = Self.makeLayout(layout: .listInspector)
+        collectionView.stringIdentifier = LayoutMode.listInspector.rawValue
+        
+        // scroll back to item to make sure it's still in view after changing views
+        collectionView.scrollToItems(at: indexPaths, scrollPosition: [.centeredVertically, .centeredHorizontally])
     }
     
     func collectionView(_ collectionView: NSCollectionView, didDeselectItemsAt indexPaths: Set<IndexPath>) {

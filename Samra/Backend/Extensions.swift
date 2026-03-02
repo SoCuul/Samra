@@ -123,3 +123,15 @@ public extension View {
         body(self)
     }
 }
+
+public extension NSUserInterfaceItemIdentification {
+    /// A `String` class that identifies the user interface item.
+    var stringIdentifier: String {
+        get {
+            return self.identifier?.rawValue ?? ""
+        }
+        set {
+            self.identifier = NSUserInterfaceItemIdentifier(newValue)
+        }
+    }
+}
