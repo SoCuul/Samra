@@ -101,12 +101,29 @@ struct DetailItemSection: Hashable {
             var blue: CGFloat = 0
             var alpha: CGFloat = 0
             nsColor?.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
-
-            items.append(DetailItemSection(sectionHeader: "Color Attributes", items: [
+                
+            // get hex color
+            var hexCode = ""
+            if alpha != 1 {
+                hexCode = String(format: "#%02lX%02lX%02lX%02lX", lroundf(Float(red) * 255), lroundf(Float(green) * 255), lroundf(Float(blue) * 255), lroundf(Float(alpha) * 255))
+            }
+            else {
+                hexCode = String(format: "#%02lX%02lX%02lX", lroundf(Float(red) * 255), lroundf(Float(green) * 255), lroundf(Float(blue) * 255))
+            }
+                
+            var colorItems = [
                 DetailItem(primaryText: "Red", secondaryText: Int(red * 255)),
                 DetailItem(primaryText: "Green", secondaryText: Int(green * 255)),
                 DetailItem(primaryText: "Blue", secondaryText: Int(blue * 255)),
-            ]))
+            ]
+                
+            if alpha != 1 {
+                colorItems.append(DetailItem(primaryText: "Alpha", secondaryText: Int(alpha * 255)))
+            }
+            
+            colorItems.append(DetailItem(primaryText: "HEX Code", secondaryText: hexCode))
+
+            items.append(DetailItemSection(sectionHeader: "Color Attributes", items: colorItems))
 
         case .svg, .pdf:
             items.append(DetailItemSection(sectionHeader: "Base Attributes", items: [

@@ -197,8 +197,22 @@ struct RenditionInformationView: View {
                     HStack {
                         Text(item.primaryText)
                         Spacer()
-                        Text(item.secondaryText)
-                            .multilineTextAlignment(.trailing)
+                        HStack(spacing: 6) {
+                                Text(item.secondaryText)
+                                    .multilineTextAlignment(.trailing)
+                                
+//                                if #available(macOS 11, *) {
+//                                    Button(action: {
+//                                        let pb = NSPasteboard.general
+//                                        pb.clearContents()
+//                                        pb.setString(item.secondaryText, forType: .string)
+//                                    }) {
+//                                        Image(systemName: "doc.on.doc")
+//                                    }
+//                                    .buttonStyle(BorderlessButtonStyle())
+//                                    .help("Copy to clipboard")
+//                                }
+                            }
                     }
                     .contextMenu {
                         Button("Copy") {
