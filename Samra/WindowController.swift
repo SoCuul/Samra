@@ -54,6 +54,10 @@ class WindowController: NSWindowController, NSWindowDelegate {
             
             splitViewController.addSplitViewItem(NSSplitViewItem(sidebarWithViewController: typesSidebar))
             splitViewController.addSplitViewItem(NSSplitViewItem(viewController: renditionVC))
+                
+            splitViewController.splitViewItems[0].canCollapse = false
+            splitViewController.splitViewItems[0].maximumThickness = 200
+                
             viewController = splitViewController
                 
             localInputMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
@@ -73,7 +77,7 @@ class WindowController: NSWindowController, NSWindowDelegate {
         }
         
         let window = NSWindow(contentViewController: viewController)
-        window.minSize = NSSize(width: 874, height: 264)
+        window.minSize = NSSize(width:934, height: 382)
         window.styleMask.insert(.fullSizeContentView)
         self.init(window: window)
         
