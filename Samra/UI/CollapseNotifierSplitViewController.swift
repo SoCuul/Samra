@@ -19,6 +19,41 @@ class CollapseNotifierSplitViewController: NSSplitViewController {
     /// when the cmd+f combo is clicked
     var shouldFocusOnSearchBar: Bool = false
     
+    func getRenditionVC() -> RenditionListViewController? {
+        return self.children.compactMap({ $0 as? RenditionListViewController }).first
+    }
+    func getTypesListVC() -> TypesListViewController? {
+        return self.children.compactMap({ $0 as? TypesListViewController }).first
+    }
+    
+    @objc
+    func infoButtonClicked(_ sender: Any?) {
+        if let renditionVC = getRenditionVC() {
+            renditionVC.infoButtonClicked(sender)
+        }
+    }
+    
+    @objc
+    func exportCatalogClicked(_ sender: Any?) {
+        if let renditionVC = getRenditionVC() {
+            renditionVC.exportCatalogClicked(sender)
+        }
+    }
+    
+    @objc
+    override func cancelOperation(_ sender: Any?) {
+        if let renditionVC = getRenditionVC() {
+            renditionVC.deselect()
+        }
+    }
+    
+    @objc
+    func goToSection(menuItemSender: NSMenuItem) {
+        if let typesListVC = getTypesListVC() {
+            typesListVC.goToSection(menuItemSender: menuItemSender)
+        }
+    }
+    
     override func splitViewItem(_ item: NSSplitViewItem, didChangeCollapsed didCollapse: Bool, animated: Bool) {
         super.splitViewItem(item, didChangeCollapsed: didCollapse, animated: animated)
         handler?(item, didCollapse, animated)

@@ -170,6 +170,10 @@ extension NSDocumentController {
     func openDocument(withContentsOf url: URL) {
         NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
     }
+    
+    func openDocument(withContentsOf url: URL, completionHandler: @escaping (NSDocument?, Bool, (any Error)?) -> Void) {
+        NSDocumentController.shared.openDocument(withContentsOf: url, display: true, completionHandler: completionHandler)
+    }
 }
 
 // PrivateKits Extensions

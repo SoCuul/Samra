@@ -26,7 +26,13 @@ class WelcomeScreenOption: NSView {
         
         let finalImageView = NSImageView()
         finalImageView.image = finalImage
+        finalImageView.imageAlignment = .alignCenter
+        finalImageView.imageScaling = .scaleProportionallyDown
         finalImageView.contentTintColor = .controlAccentColor
+        
+        finalImageView.widthAnchor.constraint(equalToConstant: 40).isActive = true
+        finalImageView.heightAnchor.constraint(equalToConstant: 40).isActive = true
+        finalImageView.translatesAutoresizingMaskIntoConstraints = false
         
         let primaryTextLabel = NSTextField(labelWithString: primaryText)
         let secondaryTextLabel = NSTextField(labelWithString: secondaryText)
@@ -56,6 +62,8 @@ class WelcomeScreenOption: NSView {
     @objc func performAction() {
         actionClosure()
     }
+    
+    override func mouseDown(with: NSEvent) {}
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")

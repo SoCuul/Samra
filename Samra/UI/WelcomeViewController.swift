@@ -21,20 +21,20 @@ class WelcomeViewController: NSViewController {
         
         let appIcon = NSImageView(image: NSApplication.shared.applicationIconImage)
         let welcomeTextLabel = NSTextField(labelWithString: "Welcome to Samra")
-        welcomeTextLabel.font = .systemFont(ofSize: 30)
+        welcomeTextLabel.font = .systemFont(ofSize: 30, weight: .semibold)
         
-        let subtitleLabel = NSTextField(labelWithString: "Created by Antoine (formerly known as Serena)")
+        let subtitleLabel = NSTextField(labelWithString: "Created by Antoine")
         subtitleLabel.textColor = .secondaryLabelColor
         
         let stackView = NSStackView(views: [appIcon, welcomeTextLabel, subtitleLabel])
         stackView.orientation = .vertical
         stackView.translatesAutoresizingMaskIntoConstraints = false
-        stackView.spacing = 0.3
+        stackView.spacing = 6
         view.addSubview(stackView)
         
         NSLayoutConstraint.activate([
             stackView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            stackView.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -40)
+            stackView.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -75)
         ])
         
         let openFolderOption = WelcomeScreenOption(
@@ -47,11 +47,6 @@ class WelcomeViewController: NSViewController {
         openFolderOption.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(openFolderOption)
         
-        NSLayoutConstraint.activate([
-            openFolderOption.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: 40),
-            openFolderOption.centerXAnchor.constraint(equalTo: view.centerXAnchor)
-        ])
-        
         let diffCatalogsOption = WelcomeScreenOption(primaryText: "Diff Catalogs", secondaryText: "Diff 2 different Asset Catalogs on your Mac", image: NSImage(systemName: "doc.plaintext")) {
             WindowController(kind: .diffSelection).showWindow(nil)
         }
@@ -59,9 +54,16 @@ class WelcomeViewController: NSViewController {
         diffCatalogsOption.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(diffCatalogsOption)
         
+        let optionsStack = NSStackView(views: [openFolderOption, diffCatalogsOption])
+        optionsStack.orientation = .vertical
+        optionsStack.alignment = .leading
+        optionsStack.spacing = 18
+        optionsStack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(optionsStack)
+
         NSLayoutConstraint.activate([
-            diffCatalogsOption.topAnchor.constraint(equalTo: openFolderOption.bottomAnchor, constant: 20),
-            diffCatalogsOption.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+            optionsStack.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: 40),
+            optionsStack.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
         
         let closeWindowButton = NSButton()
@@ -70,7 +72,7 @@ class WelcomeViewController: NSViewController {
         closeWindowButton.target = self
         
         closeWindowButton.showsBorderOnlyWhileMouseInside = true
-        closeWindowButton.bezelStyle = .roundRect
+        closeWindowButton.bezelStyle = .circular
         closeWindowButton.bezelColor = .gray
         
         closeWindowButton.translatesAutoresizingMaskIntoConstraints = false
@@ -83,50 +85,21 @@ class WelcomeViewController: NSViewController {
         
         let showThisWindowButton = NSButton(title: "Show this window when Samra launches",
                                             target: self,
-                                            action: #selector(showThisWindowOnLaunchButtonClicked(sender:)))
+                                            action: nil)
         showThisWindowButton.setButtonType(.switch)
-        showThisWindowButton.state = Preferences.showWelcomeVCOnLaunch ? .on : .off
         showThisWindowButton.translatesAutoresizingMaskIntoConstraints = false
+        showThisWindowButton.bind(.value, to: NSUserDefaultsController.shared, withKeyPath: "values.ShowWelcomeViewControllerOnLaunch", options: nil)
         view.addSubview(showThisWindowButton)
         
         NSLayoutConstraint.activate([
-            showThisWindowButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -10),
+            showThisWindowButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -15),
             showThisWindowButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
-        
-        // Register for when cursor is on Window
-        // if it's not, hide the closeWindowButton and the showThisWindowButton
-        // otherwise show it
-        NSEvent.addLocalMonitorForEvents(matching: [.mouseEntered, .mouseExited]) { event in
-            let newAlphaValue: CGFloat = (event.type == .mouseExited) ? 0 : 1
-            
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.2
-                context.allowsImplicitAnimation = true
-                
-                closeWindowButton.animator().alphaValue = newAlphaValue
-                showThisWindowButton.animator().alphaValue = newAlphaValue
-            }
-            
-            return event
-        }
     }
     
     @objc
     func closeWindowButtonClicked() {
         view.window?.close()
-    }
-    
-    @objc
-    func showThisWindowOnLaunchButtonClicked(sender: NSButton) {
-        var newValue = Preferences.showWelcomeVCOnLaunch
-        newValue.toggle()
-        Preferences.showWelcomeVCOnLaunch = newValue
-    }
-    
-    deinit {
-        print("Magna Carta.. Holy Grail.")
-        print("deinit called for WelcomeViewController")
     }
     
     override func viewDidAppear() {
@@ -137,5 +110,9 @@ class WelcomeViewController: NSViewController {
         window.standardWindowButton(.closeButton)?.isHidden = true
         window.standardWindowButton(.zoomButton)?.isHidden = true
         window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+    }
+    
+    override func mouseDown(with event: NSEvent) {
+        view.window?.performDrag(with: event)
     }
 }

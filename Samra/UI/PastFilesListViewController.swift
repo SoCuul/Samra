@@ -11,8 +11,9 @@ import AssetCatalogWrapper
 
 /// A View Controller showing the past files opened
 class PastFilesListViewController: NSViewController {
-    var paths: [String] = Preferences.recentlyOpenedFilePaths.reversed()
+    var urls: [URL] = NSDocumentController.shared.recentDocumentURLs
     var tableView: NSTableView!
+    var quickLookSource: QuickLookPreviewSource?
     
     override func loadView() {
         tableView = NSTableView()
@@ -27,7 +28,6 @@ class PastFilesListViewController: NSViewController {
         let menu = NSMenu()
         menu.delegate = self
         menu.addItem(withTitle: "Show in Finder", action: #selector(showInFinder), keyEquivalent: "")
-        menu.addItem(withTitle: "Remove", action: #selector(deleteItem), keyEquivalent: "")
         menu.autoenablesItems = false
         tableView.menu = menu
         
@@ -42,19 +42,11 @@ class PastFilesListViewController: NSViewController {
 extension PastFilesListViewController {
     // Menu item actions
     @objc
-    func deleteItem() {
-        guard tableView.clickedRow >= 0 else { return }
-        paths.remove(at: tableView.clickedRow)
-        Preferences.recentlyOpenedFilePaths = paths.reversed()
-        tableView.removeRows(at: [tableView.clickedRow], withAnimation: [.slideRight])
-    }
-    
-    @objc
     func showInFinder() {
         guard tableView.clickedRow >= 0 else { return }
         
-        let item = paths[tableView.clickedRow]
-        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: item)])
+        let item = urls[tableView.clickedRow]
+        NSWorkspace.shared.activateFileViewerSelecting([item])
     }
 }
 
@@ -75,9 +67,8 @@ extension PastFilesListViewController: NSMenuDelegate {
         // space, show QuickLook
         if event.characters == " " {
             if let sharedPanel = QLPreviewPanel.shared() {
-                let url = URL(fileURLWithPath: paths[tableView.selectedRow])
-                let source = QuickLookPreviewSource(fileURL: url)
-                sharedPanel.dataSource = source
+                let url = urls[tableView.selectedRow]
+                quickLookSource = QuickLookPreviewSource(fileURL: url)
                 sharedPanel.makeKeyAndOrderFront(nil)
             }
         }
@@ -89,9 +80,29 @@ extension PastFilesListViewController: NSMenuDelegate {
     }
 }
 
+// Quick Look
+extension PastFilesListViewController {
+    override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool {
+        return true
+    }
+
+    override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        panel.delegate = self
+        
+        if let quickLookSource {
+            panel.dataSource = quickLookSource
+        }
+    }
+
+    override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        panel.dataSource = nil
+        panel.delegate = nil
+    }
+}
+
 extension PastFilesListViewController: NSTableViewDataSource, NSTableViewDelegate {
     func numberOfRows(in tableView: NSTableView) -> Int {
-        return paths.count
+        return urls.count
     }
     
     func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
@@ -101,12 +112,14 @@ extension PastFilesListViewController: NSTableViewDataSource, NSTableViewDelegat
     }
     
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        let item = URL(fileURLWithPath: paths[row])
+        let item = urls[row]
         
         let cell = NSTableCellView()
         let imageView = NSImageView(image: NSWorkspace.shared.icon(forFile: item.path))
         
         let text = NSTextField(labelWithString: item.lastPathComponent)
+        text.lineBreakMode = .byTruncatingMiddle
+        
         let subtitleText = NSTextField(labelWithString: item.deletingLastPathComponent().path)
         if #available(macOS 11, *) {
             subtitleText.font = .preferredFont(forTextStyle: .subheadline)
@@ -143,12 +156,16 @@ extension PastFilesListViewController: NSTableViewDataSource, NSTableViewDelegat
     @objc
     func doubeClickedItem() {
         guard tableView.selectedRow != -1 else { return }
-        var copy = Preferences.recentlyOpenedFilePaths
-        let item = paths[tableView.selectedRow]
-        copy.removeAll { $0 == item } // remove if exists
-        copy.append(item) // add item to amke it most recent
-        Preferences.recentlyOpenedFilePaths = copy
-        paths = Array(copy)
-        NSDocumentController.shared.openDocument(withContentsOf: URL(fileURLWithPath: item))
+        
+        let item = urls[tableView.selectedRow]
+        NSDocumentController.shared.openDocument(withContentsOf: item)
+        
+        // Close the welcome window if opened
+        for window in NSApp.windows {
+            if let split = window.contentViewController as? NSSplitViewController,
+               split.children.contains(where: { $0 is WelcomeViewController }) {
+                window.close()
+            }
+        }
     }
 }

@@ -49,26 +49,7 @@ class TypesListViewController: NSViewController {
         scrollView.hasHorizontalScroller = false
         view = scrollView
         view.frame.size = CGSize(width: 200, height: 0)
-        
-        setupMenuBarItems()
     }
-    
-    override func viewDidDisappear() {
-        super.viewDidDisappear()
-        
-        // disable section items
-        for item in NSApplication.shared.mainMenu?.items ?? [] {
-            guard item.title == "Sections", let submenu = item.submenu else {
-                continue
-            }
-            
-            for item in submenu.items {
-                item.isEnabled = false
-                item.keyEquivalent = ""
-            }
-        }
-    }
-    
     
     override func performTextFinderAction(_ sender: Any?) {
         for item in view.window?.toolbar?.items ?? [] {
@@ -84,33 +65,8 @@ class TypesListViewController: NSViewController {
     func exportCatalog() {
         for item in (parent as? NSSplitViewController)?.splitViewItems ?? [] {
             if let list = item.viewController as? RenditionListViewController {
-                list.exportCatalog()
+                list.exportCatalogClicked(nil)
                 break
-            }
-        }
-    }
-    
-    func setupMenuBarItems() {
-        for item in NSApplication.shared.mainMenu?.items ?? [] {
-            // we just want to modify the "Sections" section
-            guard item.title == "Sections", let submenu = item.submenu else {
-                continue
-            }
-            
-            submenu.autoenablesItems = false
-            submenu.removeAllItems()
-            
-            // add only the types that we have
-            // to the section
-            for (index, item) in allTypes.enumerated() {
-                // make the keyEquivalent index + 1
-                // so that it's less confusing to the user,
-                // ie, if `Color` was the first section, this would make it cmd 1
-                // rather than cmd 0
-                let item =  NSMenuItem(title: item.description,
-                                       action: #selector(goToSection),
-                                       keyEquivalent: (index + 1).description, tag: index)
-                submenu.addItem(item)
             }
         }
     }
@@ -163,7 +119,35 @@ extension TypesListViewController: NSTableViewDataSource, NSTableViewDelegate {
     
     
     func tableViewSelectionDidChange(_ notification: Notification) {
-        changeSection(to: tableView.selectedRow)
+        if tableView.selectedRow >= 0 {
+            changeSection(to: tableView.selectedRow)            
+        }
+    }
+}
+
+// Menu bar
+extension TypesListViewController : NSMenuDelegate {
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        // we just want to modify the "Sections" section
+        guard let submenu = menu.item(withTitle: "Sections")?.submenu else {
+            return
+        }
+        
+        submenu.autoenablesItems = false
+        submenu.removeAllItems()
+        
+        // add only the types that we have
+        // to the section
+        for (index, item) in allTypes.enumerated() {
+            // make the keyEquivalent index + 1
+            // so that it's less confusing to the user,
+            // ie, if `Color` was the first section, this would make it cmd 1
+            // rather than cmd 0
+            let item =  NSMenuItem(title: item.description,
+                                   action: #selector(goToSection),
+                                   keyEquivalent: (index + 1).description, tag: index)
+            submenu.addItem(item)
+        }
     }
 }
 

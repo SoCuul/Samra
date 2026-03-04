@@ -101,20 +101,20 @@ class RenditionListViewController: NSViewController {
         view = scrollView
         view.frame.size = CGSize(width: 724, height: 676)
         
-        let observer = NotificationCenter.default.addObserver(forName: NSScrollView.didEndLiveScrollNotification, object: scrollView, queue: nil) { [weak self] _ in
-            guard let self = self else { return }
-            let vc = self.splitViewParent?.splitViewItems[0].viewController as? TypesListViewController
-            guard let vc, let currentSection = self.collectionView.indexPathsForVisibleItems().first?.section else {
-                return
-            }
-            
-            vc.ignoreChanges = true
-            vc.tableView.deselectRow(vc.tableView.selectedRow)
-            vc.tableView.selectRowIndexes([currentSection], byExtendingSelection: true)
-            vc.ignoreChanges = false
-        }
-        
-        self.scrollObserver = observer
+//        let observer = NotificationCenter.default.addObserver(forName: NSScrollView.didEndLiveScrollNotification, object: scrollView, queue: nil) { [weak self] _ in
+//            guard let self = self else { return }
+//            let vc = self.splitViewParent?.splitViewItems[0].viewController as? TypesListViewController
+//            guard let vc, let currentSection = self.collectionView.indexPathsForVisibleItems().first?.section else {
+//                return
+//            }
+//            
+//            vc.ignoreChanges = true
+//            vc.tableView.deselectRow(vc.tableView.selectedRow)
+//            vc.tableView.selectRowIndexes([currentSection], byExtendingSelection: true)
+//            vc.ignoreChanges = false
+//        }
+//        
+//        self.scrollObserver = observer
         
         collectionView.registerForDraggedTypes(NSImage.imageTypes.map { .init($0) })
         collectionView.setDraggingSourceOperationMask(.every, forLocal: true)
@@ -155,6 +155,12 @@ class RenditionListViewController: NSViewController {
         
         // deselect current item
         self.collectionView.deselectAll(nil)
+        
+        // delect section from sidebar
+        let vc = self.splitViewParent?.splitViewItems[0].viewController as? TypesListViewController
+        if let vc {
+            vc.tableView.deselectAll(nil)
+        }
         
         // if we already have an existing info vc then remove it
         if parent.splitViewItems.count == 3 {
@@ -222,43 +228,10 @@ extension RenditionListViewController {
 
 extension RenditionListViewController: MenuProvider {
     
-    static private func _promptToSaveImage(cgImage: CGImage, formatType: NSBitmapImageRep.FileType, defaultFileName: String, displayFormat: String) {
-        let savePanel = NSSavePanel()
-        savePanel.nameFieldStringValue = defaultFileName
-        guard savePanel.runModal() == .OK, let urlToSaveTo = savePanel.url else { return }
-        
-        guard let data = NSBitmapImageRep(cgImage: cgImage).representation(using: formatType, properties: [.compressionFactor: 1]) else {
-            NSAlert(title: "Failed to save Image as \(displayFormat)", message: "NSBitmapImageRep representation returned nil.").runModal()
-            return
-        }
-        
-        do {
-            try data.write(to: urlToSaveTo)
-        } catch {
-            NSAlert(title: "Failed to save Image as \(displayFormat)", message: error.localizedDescription).runModal()
-        }
-    }
-    
-    static private func _promptToExportItem(rendition: Rendition) {
-        guard let exportData = Rendition.ExportData.init(rendition) else { return }
-        
-        let savePanel = NSSavePanel()
-        savePanel.nameFieldStringValue = rendition.sanitizedFilename(exportData.fileExtension)
-        guard savePanel.runModal() == .OK, let urlToSaveTo = savePanel.url else { return }
-        
-        do {
-            try rendition.extract(to: urlToSaveTo)
-        } catch {
-            NSAlert(title: error.localizedDescription)
-                .runModal()
-        }
-    }
-    
     func collectionView(_ collectionView: NSCollectionView, menuForItemAt indexPath: IndexPath) -> NSMenu? {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
         let copyName = ClosureMenuItem(title: "Copy Name") {
-            NSPasteboard.general.declareTypes([.string], owner: nil)
-            NSPasteboard.general.setString(item.name, forType: .string)
+            Clipboard.copyString(item.name)
         }
         
         var items: [NSMenuItem] = [copyName]
@@ -266,24 +239,27 @@ extension RenditionListViewController: MenuProvider {
         switch item.representation {
         case .image(let cgImage):
             let copyImage = ClosureMenuItem(title: "Copy Image") {
-                NSPasteboard.general.declareTypes([.tiff], owner: nil)
-                NSPasteboard.general.setData(NSImage(cgImage: cgImage, size: cgImage.size).tiffRepresentation, forType: .tiff)
+                Clipboard.copyImage(cgImage)
             }
             items.append(copyImage)
             
             var saveImageAsItems = [
                 ClosureMenuItem(title: "PNG") {
-                    Self._promptToSaveImage(cgImage: cgImage, formatType: .png, defaultFileName: "image.png", displayFormat: "PNG")
+                    SavePrompt.saveImage(cgImage: cgImage, formatType: .png, defaultFileName: "image.png", displayFormat: "PNG")
                 },
                 
                 ClosureMenuItem(title: "JPEG") {
-                    Self._promptToSaveImage(cgImage: cgImage, formatType: .jpeg, defaultFileName: "image.jpeg", displayFormat: "JPEG")
+                    SavePrompt.saveImage(cgImage: cgImage, formatType: .jpeg, defaultFileName: "image.jpeg", displayFormat: "JPEG")
+                },
+                
+                ClosureMenuItem(title: "TIFF") {
+                    SavePrompt.saveImage(cgImage: cgImage, formatType: .tiff, defaultFileName: "image.tiff", displayFormat: "TIFF")
                 }
             ]
             
             if item.type == .svg {
                 let asSVG = ClosureMenuItem(title: "SVG") {
-                    Self._promptToExportItem(rendition: item)
+                    SavePrompt.exportItem(rendition: item)
                 }
                 
                 saveImageAsItems.insert(asSVG, at: 0)
@@ -291,7 +267,7 @@ extension RenditionListViewController: MenuProvider {
                 
             if item.type == .pdf {
                 let asPDF = ClosureMenuItem(title: "PDF") {
-                    Self._promptToExportItem(rendition: item)
+                    SavePrompt.exportItem(rendition: item)
                 }
                 
                 saveImageAsItems.insert(asPDF, at: 0)
@@ -302,65 +278,50 @@ extension RenditionListViewController: MenuProvider {
             items.insert(.separator(), at: 1)
                 
             let exportItem = ClosureMenuItem(title: "Export Item") {
-                Self._promptToExportItem(rendition: item)
+                SavePrompt.exportItem(rendition: item)
             }
             items.insert(exportItem, at: 0)
             items.insert(.separator(), at: 1)
         case .color(let cgColor):
             let copyColor = ClosureMenuItem(title: "Copy Color") {
-                let pb = NSPasteboard.general
-                pb.clearContents()
-
-                // Write as NSColor (supports other apps that can read NSColor)
-                if let color = NSColor(cgColor: cgColor) {
-                    pb.writeObjects([color])
-                }
-
-                // Alternative: also write as hex string for apps that expect text
-                pb.setString(cgColor.toHexString(), forType: .string)
+                Clipboard.copyColor(cgColor)
             }
             let copyRGB = ClosureMenuItem(title: "Copy RGB Values") {
-                let rgba = cgColor.toRGBA()
-                
-                // Check if color is opaque
-                var rgbaStr = ""
-                print(rgba)
-                if rgba[3] == 255 {
-                    rgbaStr = "rgb(\(rgba[0]), \(rgba[1]), \(rgba[2]))"
-                }
-                else {
-                    rgbaStr = "rgba(\(rgba[0]), \(rgba[1]), \(rgba[2]), \(rgba[3]))"
-                }
-                
-                let pb = NSPasteboard.general
-                pb.clearContents()
-                pb.setString(rgbaStr, forType: .string)
+                Clipboard.copyColorRgb(cgColor)
             }
                 
             items.insert(copyColor, at: 0)
             items.insert(copyRGB, at: 1)
             items.insert(.separator(), at: 2)
+        case .rawData(let data):
+            if let string = String(data:data, encoding:.utf8) {
+                let copyString = ClosureMenuItem(title: "Copy String") {
+                    Clipboard.copyString(string)
+                }
+                
+                items.insert(copyString, at: 0)
+            }
         default:
             break
         }
         
-        let deleteItem = ClosureMenuItem(title: "Delete") { [unowned self] in
-            let alert = NSAlert(title: "Are you sure you want to delete \(item.name)?",
-                                message: "This action cannot be undone")
-            let deleteButton = alert.addButton(withTitle: "Delete")
-            deleteButton.target = self
-            deleteButton.action = #selector(deleteItem(sender:))
-            
-            if #available(macOS 11, *) {
-                deleteButton.hasDestructiveAction = true
-            }
-            
-            itemToDeleteIndexPath = indexPath
-            alert.addButton(withTitle: "Cancel")
-            alert.runModal()
-        }
-        
-        items.append(deleteItem)
+//        let deleteItem = ClosureMenuItem(title: "Delete") { [unowned self] in
+//            let alert = NSAlert(title: "Are you sure you want to delete \(item.name)?",
+//                                message: "This action cannot be undone")
+//            let deleteButton = alert.addButton(withTitle: "Delete")
+//            deleteButton.target = self
+//            deleteButton.action = #selector(deleteItem(sender:))
+//            
+//            if #available(macOS 11, *) {
+//                deleteButton.hasDestructiveAction = true
+//            }
+//            
+//            itemToDeleteIndexPath = indexPath
+//            alert.addButton(withTitle: "Cancel")
+//            alert.runModal()
+//        }
+//        
+//        items.append(deleteItem)
         return NSMenu(items: items)
     }
     
@@ -383,9 +344,10 @@ extension RenditionListViewController: MenuProvider {
     }
 }
 
+// Responder chain
 extension RenditionListViewController {
     @objc
-    func infoButtonClicked(sender: NSButton) {
+    func infoButtonClicked(_ sender: Any?) {
         guard let ass = CUICommonAssetStorage(path: fileURL.path, forWriting: false) else {
             NSAlert(
                 title: "Failed to display details of Assets.car file",
@@ -411,12 +373,13 @@ extension RenditionListViewController {
     }
     
     @objc
-    func exportCatalog() {
+    func exportCatalogClicked(_ sender: Any?) {
         let panel = NSOpenPanel()
         panel.title = "Directory to export to"
         panel.canChooseDirectories = true
         panel.canCreateDirectories = true
         panel.canChooseFiles = false
+        panel.prompt = "Export"
         
         guard panel.runModal() == .OK, let destinationURL = panel.url else { return }
         
@@ -491,6 +454,12 @@ extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromisePr
         
         collectionView.collectionViewLayout = Self.makeLayout(layout: .listInspector)
         collectionView.stringIdentifier = LayoutMode.listInspector.rawValue
+        
+        // update selected sidebar section
+        let vc = self.splitViewParent?.splitViewItems[0].viewController as? TypesListViewController
+        if let vc {
+            vc.tableView.selectRowIndexes(IndexSet(integer: indexPaths.first?.section ?? 0), byExtendingSelection: false)
+        }
         
         // scroll back to item to make sure it's still in view after changing views
         collectionView.scrollToItems(at: indexPaths, scrollPosition: [.centeredVertically, .centeredHorizontally])

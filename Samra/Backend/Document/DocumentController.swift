@@ -8,15 +8,7 @@
 import Cocoa
 
 class DocumentController: NSDocumentController {
-
-    override func newDocument(_ sender: Any?) {
-    }
-    
-    override func saveAllDocuments(_ sender: Any?) {
-    }
-
     override func runModalOpenPanel(_ openPanel: NSOpenPanel, forTypes types: [String]?) -> Int {
         return ArchiveChooserPanel.make(openPanel: openPanel).runModal().rawValue
     }
-
 }

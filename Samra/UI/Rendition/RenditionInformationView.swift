@@ -35,47 +35,90 @@ struct RenditionInformationView: View {
             
                 .frame(alignment: .center)
                 .contextMenu {
-                    Button("Copy Image") {
-                        NSPasteboard.general.declareTypes([.tiff], owner: nil)
-                        NSPasteboard.general.setData(NSImage(cgImage: cgImage, size: cgImage.size).tiffRepresentation,
-                                                     forType: .tiff)
+                    Button("Export Item...") {
+                        SavePrompt.exportItem(rendition: rendition)
                     }
                     
-                    Button("Save Image As...") {
-                        let panel = NSSavePanel()
-                        panel.nameFieldStringValue = rendition.cuiRend.name()
+                    if #available(macOS 11.0, *) {
+                        Divider()
                         
-                        if panel.runModal() == .OK, let chosenURL = panel.url {
-                            let rep = NSBitmapImageRep(cgImage: cgImage)
-                            guard let data = rep.representation(using: .png, properties: [.compressionFactor: 1]) else {
-                                NSAlert(title: "Unable to generate png data for image").runModal()
-                                return
+                        Menu("Save Image As...") {
+                            
+                            if rendition.type == .svg {
+                                Button("SVG") {
+                                    SavePrompt.exportItem(rendition: rendition)
+                                }
                             }
                             
-                            do {
-                                try data.write(to: chosenURL, options: .atomic)
-                            } catch {
-                                NSAlert(title: "Unable to write image data to \(chosenURL.path)",
-                                        message: error.localizedDescription).runModal()
+                            if rendition.type == .pdf {
+                                Button("PDF") {
+                                    SavePrompt.exportItem(rendition: rendition)
+                                }
                             }
+                            
+                            Button("PNG") {
+                                SavePrompt.saveImage(cgImage: cgImage, formatType: .png, defaultFileName: "image.png", displayFormat: "PNG")
+                            }
+                            
+                            Button("JPEG") {
+                                SavePrompt.saveImage(cgImage: cgImage, formatType: .jpeg, defaultFileName: "image.jpeg", displayFormat: "JPEG")
+                            }
+                            
+                            Button("TIFF") {
+                                SavePrompt.saveImage(cgImage: cgImage, formatType: .tiff, defaultFileName: "image.tiff", displayFormat: "TIFF")
+                            }
+                            
                         }
                     }
+                    
+                    Divider()
+                    
+                    Button("Copy Name") {
+                        Clipboard.copyString(rendition.name)
+                    }
+                    
+                    Button("Copy Image") {
+                        Clipboard.copyImage(cgImage)
+                    }
                 }
-            /*
-             .onDrag {
-             }
-             */
         case .color(let cgColor):
             Circle()
                 .fill(Color(NSColor(cgColor: cgColor)!))
                 .frame(width: 130, height: 230, alignment: .center)
+                .contextMenu {
+                    Button("Copy Color") {
+                        Clipboard.copyColor(cgColor)
+                    }
+                    
+                    Button("Copy RGB Values") {
+                        Clipboard.copyColorRgb(cgColor)
+                    }
+                    
+                    Divider()
+                    
+                    Button("Copy Name") {
+                        Clipboard.copyString(rendition.name)
+                    }
+                }
 
         case .rawData(let data):
             if let string = String(data:data, encoding:.utf8) {
                 Text(String(string.prefix(1024)))
                     .font(.body)
                     .padding(5)
-            } else {
+                    .contextMenu {
+                        Button("Copy String") {
+                            Clipboard.copyString(string)
+                        }
+                        
+                        Divider()
+                        
+                        Button("Copy Name") {
+                            Clipboard.copyString(rendition.name)
+                        }
+                    }
+            }
+            else {
                 Text("No Preview Available")
                     .font(.title.italic())
                     .padding(30)

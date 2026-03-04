@@ -8,9 +8,11 @@
 import Cocoa
 import AssetCatalogWrapper
 
-class WindowController: NSWindowController, NSWindowDelegate {
+class WindowController: NSWindowController {
     
     var inputMonitor: Any?
+    var typesSidebar: TypesListViewController?
+    var renditionVC: RenditionListViewController?
     
     enum Kind {
         /// The 'Welcome to Samra' screen
@@ -32,7 +34,8 @@ class WindowController: NSWindowController, NSWindowDelegate {
     convenience init(kind: Kind) {
         let viewController: NSViewController
         
-        var localInputMonitor: Any?
+        var localTypesSidebar: TypesListViewController? = nil
+        var localRenditionVC: RenditionListViewController? = nil
         
         switch kind {
         case .welcome:
@@ -41,33 +44,29 @@ class WindowController: NSWindowController, NSWindowDelegate {
             let list = PastFilesListViewController()
             splitViewController.addSplitViewItem(NSSplitViewItem(viewController: welcomeViewController))
             splitViewController.addSplitViewItem(NSSplitViewItem(sidebarWithViewController: list))
+            splitViewController.splitViewItems[0].minimumThickness = 340
+            splitViewController.splitViewItems[1].minimumThickness = 205
+            splitViewController.splitViewItems[1].canCollapse = false
             viewController = splitViewController
         case .assetCatalog(let input):
             let splitViewController = CollapseNotifierSplitViewController()
-            let renditionVC = RenditionListViewController(catalog: input.catalog, collection: input.collection,
+            localRenditionVC = RenditionListViewController(catalog: input.catalog, collection: input.collection,
                                                           fileURL: input.fileURL)
-            let typesSidebar = TypesListViewController(types: input.collection.map(\.type)) { type in
-                if let index = renditionVC.dataSource.snapshot().indexOfSection(type) {
-                    renditionVC.collectionView.scrollToItems(at: [IndexPath(item: 0, section: index)], scrollPosition: .top)
+            localTypesSidebar = TypesListViewController(types: input.collection.map(\.type)) { type in
+                if let index = localRenditionVC!.dataSource.snapshot().indexOfSection(type) {
+                    localRenditionVC!.collectionView.scrollToItems(at: [IndexPath(item: 0, section: index)], scrollPosition: .top)
                 }
             }
             
-            splitViewController.addSplitViewItem(NSSplitViewItem(sidebarWithViewController: typesSidebar))
-            splitViewController.addSplitViewItem(NSSplitViewItem(viewController: renditionVC))
+            splitViewController.addSplitViewItem(NSSplitViewItem(sidebarWithViewController: localTypesSidebar!))
+            splitViewController.addSplitViewItem(NSSplitViewItem(viewController: localRenditionVC!))
                 
-            splitViewController.splitViewItems[0].canCollapse = false
-            splitViewController.splitViewItems[0].maximumThickness = 200
+            splitViewController.splitViewItems[0].minimumThickness = 172
+            splitViewController.splitViewItems[0].maximumThickness = 190
+                
+            NSApp.mainMenu?.item(withTitle: "Sections")?.submenu?.delegate = localTypesSidebar
                 
             viewController = splitViewController
-                
-            localInputMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                // Handle esc keypress
-                if event.keyCode == 53 {
-                    renditionVC.deselect()
-                    return nil
-                }
-                else { return event }
-            }
         case .aboutPanel:
             viewController = AboutViewController()
         case .diffSelection:
@@ -81,7 +80,8 @@ class WindowController: NSWindowController, NSWindowDelegate {
         window.styleMask.insert(.fullSizeContentView)
         self.init(window: window)
         
-        self.inputMonitor = localInputMonitor
+        self.typesSidebar = localTypesSidebar
+        self.renditionVC = localRenditionVC
         
         switch kind {
         case .assetCatalog(let input):
@@ -116,12 +116,29 @@ class WindowController: NSWindowController, NSWindowDelegate {
             window.animationBehavior = .documentWindow
             window.delegate = self
         }
+        
+        // Close the welcome window if opened
+        for window in NSApp.windows {
+            if let split = window.contentViewController as? NSSplitViewController,
+               split.children.contains(where: { $0 is WelcomeViewController }) {
+                window.close()
+            }
+        }
+    }
+}
+
+extension WindowController: NSWindowDelegate {
+    func windowDidBecomeKey(_ notification: Notification) {
+        // Show & update sections for key window
+        NSApp.mainMenu?.item(withTitle: "Sections")?.isHidden = false
+        NSApp.mainMenu?.item(withTitle: "Sections")?.submenu?.delegate = typesSidebar
+        if let menu = NSApp.mainMenu {
+            typesSidebar?.menuNeedsUpdate(menu)
+        }
     }
     
-    deinit {
-        if let monitor = inputMonitor {
-            NSEvent.removeMonitor(monitor)
-        }
+    func windowDidResignKey(_ notification: Notification) {
+        NSApp.mainMenu?.item(withTitle: "Sections")?.isHidden = true
     }
 }
 
@@ -166,7 +183,7 @@ extension WindowController: NSToolbarDelegate {
             } else {
                 button.title = "Info"
             }
-            button.action = #selector(RenditionListViewController.infoButtonClicked(sender:))
+            button.action = #selector(RenditionListViewController.infoButtonClicked(_:))
             button.target = (contentViewController as? NSSplitViewController)?.splitViewItems[1].viewController as? RenditionListViewController
             button.setButtonType(.momentaryPushIn)
             button.bezelStyle = .texturedRounded
