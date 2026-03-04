@@ -40,8 +40,8 @@ class WelcomeViewController: NSViewController {
         let openFolderOption = WelcomeScreenOption(
             primaryText: "Open Assets File",
             secondaryText: "Browse and Edit Assets Files on your Mac",
-            image: NSImage(systemName: "folder")) { [unowned self] in
-                URLHandler.shared.presentArchiveChooserPanel(insertToRecentItems: true, senderView: view)
+            image: NSImage(systemName: "folder")) {
+                NSDocumentController.shared.openDocument(nil)
             }
         
         openFolderOption.translatesAutoresizingMaskIntoConstraints = false

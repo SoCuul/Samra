@@ -157,7 +157,7 @@ class AssetCatalogDiffSelectionViewController: NSViewController {
     
     @objc
     func leftOrRightButtonClicked(sender: NSButton) {
-        URLHandler.shared.presentArchiveChooserPanel(senderView: nil) { [unowned self] url in
+        if let url = ArchiveChooserPanel.present() {
             validateAndProcessURL(url, forSide: DiffSide(rawValue: sender.tag)!)
         }
     }

@@ -11,6 +11,8 @@ import AssetCatalogWrapper
 @main
 class AppDelegate: NSObject, NSApplicationDelegate {
     
+    fileprivate var documentController: DocumentController!
+    
     var showWelcomeViewController: Bool = false
     
     static func main() {
@@ -19,11 +21,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.run()
     }
     
-    func applicationWillFinishLaunching(_ notification: Notification) {}
-    
-    @objc
-    func openMenuItemClicked() {
-        URLHandler.shared.presentArchiveChooserPanel(insertToRecentItems: true, senderView: nil)
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // Initialize shared document controller
+        documentController = DocumentController()
     }
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
@@ -51,7 +51,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NSMenuItem(title: "Quit Samra", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"),
             ]),
             NSMenuItem(submenuTitle: "File", items: [
-                NSMenuItem(title: "Open...", action: #selector(openMenuItemClicked), keyEquivalent: "o"),
+                NSMenuItem(title: "Open...", action: #selector(NSDocumentController.openDocument(_:)), keyEquivalent: "o"),
                 NSMenuItem(title: "Export to...", action: #selector(RenditionListViewController.exportCatalog)),
                 NSMenuItem.separator(),
                 NSMenuItem(title: "Diff Asset Catalogs", action: #selector(openDiffViewController), keyEquivalent: "d"),
@@ -142,7 +142,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if Preferences.showWelcomeVCOnLaunch {
             WindowController(kind: .welcome).showWindow(self)
         } else {
-            URLHandler.shared.presentArchiveChooserPanel(insertToRecentItems: true, senderView: nil)
+            NSDocumentController.shared.openDocument(nil)
         }
         
         return false
@@ -185,16 +185,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc
     func openItemFromDockMenu(sender: NSMenuItem) {
         let item = Preferences.recentlyOpenedFilePaths[sender.tag]
-        URLHandler.shared.handleURLChosen(urlChosen: URL(fileURLWithPath: item),
-                                          senderView: nil, insertToRecentItems: true)
+        NSDocumentController.shared.openDocument(withContentsOf: URL(fileURLWithPath: item))
     }
     
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
-            URLHandler.shared.handleURLChosen(urlChosen: url,
-                                              senderView: nil,
-                                              insertToRecentItems: true,
-                                              openWelcomeScreenUponError: true)
+            NSDocumentController.shared.openDocument(withContentsOf: url)
         }
     }
 }

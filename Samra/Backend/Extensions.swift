@@ -166,6 +166,12 @@ extension CGColor {
     }
 }
 
+extension NSDocumentController {
+    func openDocument(withContentsOf url: URL) {
+        NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
+    }
+}
+
 // PrivateKits Extensions
 
 extension Rendition {

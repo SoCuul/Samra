@@ -149,6 +149,6 @@ extension PastFilesListViewController: NSTableViewDataSource, NSTableViewDelegat
         copy.append(item) // add item to amke it most recent
         Preferences.recentlyOpenedFilePaths = copy
         paths = Array(copy)
-        URLHandler.shared.handleURLChosen(urlChosen: URL(fileURLWithPath: item), senderView: view)
+        NSDocumentController.shared.openDocument(withContentsOf: URL(fileURLWithPath: item))
     }
 }
