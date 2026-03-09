@@ -14,4 +14,7 @@ app.delegate = delegate
 
 Bundle.main.loadNibNamed("MainMenu", owner: app, topLevelObjects: nil)
 
+// Hide "Sections" menu item by default
+NSApp.mainMenu?.item(withTitle: "Sections")?.isHidden = true
+
 app.run()

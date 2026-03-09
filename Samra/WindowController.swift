@@ -129,11 +129,15 @@ class WindowController: NSWindowController {
 
 extension WindowController: NSWindowDelegate {
     func windowDidBecomeKey(_ notification: Notification) {
-        // Show & update sections for key window
-        NSApp.mainMenu?.item(withTitle: "Sections")?.isHidden = false
-        NSApp.mainMenu?.item(withTitle: "Sections")?.submenu?.delegate = typesSidebar
-        if let menu = NSApp.mainMenu {
-            typesSidebar?.menuNeedsUpdate(menu)
+        if let vc = window?.contentViewController as? CollapseNotifierSplitViewController {
+            if let _ = vc.getTypesListVC() {
+                // Show & update sections for window (if applicable)
+                NSApp.mainMenu?.item(withTitle: "Sections")?.isHidden = false
+                NSApp.mainMenu?.item(withTitle: "Sections")?.submenu?.delegate = typesSidebar
+                if let menu = NSApp.mainMenu {
+                    typesSidebar?.menuNeedsUpdate(menu)
+                }
+            }
         }
     }
     
