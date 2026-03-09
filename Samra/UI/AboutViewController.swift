@@ -89,7 +89,7 @@ class AboutViewController: NSViewController {
     
     @objc
     func openTwitter() {
-        NSWorkspace.shared.open(URL(string: "https://twitter.com/NSAntoine")!)
+        NSWorkspace.shared.open(URL(string: "https://twitter.com/fileintegrity")!)
     }
     
     override func viewDidAppear() {
