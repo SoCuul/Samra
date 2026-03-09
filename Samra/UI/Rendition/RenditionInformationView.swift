@@ -35,7 +35,7 @@ struct RenditionInformationView: View {
             
                 .frame(alignment: .center)
                 .contextMenu {
-                    Button("Export Item...") {
+                    Button("Export Item") {
                         SavePrompt.exportItem(rendition: rendition)
                     }
                     
