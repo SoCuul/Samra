@@ -185,7 +185,7 @@ extension RenditionListViewController {
     static func makeLayout(layout: LayoutMode) -> NSCollectionViewCompositionalLayout {
         // Items
         let spacing = CGFloat(15)
-        let minItemWidth = CGFloat(layout == .listInspector ? 295 : 355)
+        let minItemWidth = CGFloat(290)
 
         let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
                                                heightDimension: .absolute(115))
@@ -437,18 +437,10 @@ extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromisePr
         let renditionVC = NSHostingController(rootView: view)
         renditionVC.identifier = "RenditionInfo"
         
-        let splitViewItem: NSSplitViewItem
-        if #available(macOS 11, *) {
-            splitViewItem = NSSplitViewItem(inspectorWithViewController: renditionVC)
-        }
-        else {
-            splitViewItem = NSSplitViewItem(contentListWithViewController: renditionVC)
-        }
+        let splitViewItem = NSSplitViewItem(contentListWithViewController: renditionVC)
         splitViewItem.minimumThickness = 340
         splitViewItem.canCollapse = true
-        splitViewItem.maximumThickness = 690
-        splitViewItem.automaticMaximumThickness = 690
-        splitViewItem.preferredThicknessFraction = 2
+        splitViewItem.preferredThicknessFraction = 0
         
         parent.addSplitViewItem(splitViewItem)
         

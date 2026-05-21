@@ -61,8 +61,10 @@ class WindowController: NSWindowController {
             splitViewController.addSplitViewItem(NSSplitViewItem(sidebarWithViewController: localTypesSidebar!))
             splitViewController.addSplitViewItem(NSSplitViewItem(viewController: localRenditionVC!))
                 
-            splitViewController.splitViewItems[0].minimumThickness = 172
+            splitViewController.splitViewItems[0].minimumThickness = 190
             splitViewController.splitViewItems[0].maximumThickness = 190
+                
+            splitViewController.splitViewItems[1].minimumThickness = 450
                 
             NSApp.mainMenu?.item(withTitle: "Sections")?.submenu?.delegate = localTypesSidebar
                 
@@ -76,7 +78,7 @@ class WindowController: NSWindowController {
         }
         
         let window = NSWindow(contentViewController: viewController)
-        window.minSize = NSSize(width:934, height: 382)
+        window.minSize = NSSize(width:0, height: 382)
         window.styleMask.insert(.fullSizeContentView)
         self.init(window: window)
         
