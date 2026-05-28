@@ -8,6 +8,22 @@
 import Cocoa
 import AssetCatalogWrapper
 
+func uniqueURL(directory: URL, filename: String) -> URL {
+    let name = (filename as NSString).deletingPathExtension
+    let ext = (filename as NSString).pathExtension
+    var url = directory.appendingPathComponent(filename)
+    
+    var counter = 1
+    
+    while FileManager.default.fileExists(atPath: url.path) {
+        let newName = ext.isEmpty ? "\(name) \(counter)" : "\(name) \(counter).\(ext)"
+        url = directory.appendingPathComponent(newName)
+        counter += 1
+    }
+    
+    return url
+}
+
 class ArchiveChooserPanel {
     @objc
     static func make(openPanel: NSOpenPanel) -> NSOpenPanel {
@@ -67,18 +83,47 @@ class SavePrompt {
         }
     }
     
-    static func exportItem(rendition: Rendition) {
+    static func exportItem(rendition: Rendition, dir: URL? = nil) {
         guard let exportData = Rendition.ExportData.init(rendition) else { return }
         
-        let savePanel = NSSavePanel()
-        savePanel.nameFieldStringValue = rendition.sanitizedFilename(exportData.fileExtension)
-        guard savePanel.runModal() == .OK, let urlToSaveTo = savePanel.url else { return }
+        var urlToSaveTo: URL?
+        
+        if let dir {
+            urlToSaveTo = uniqueURL(directory: dir, filename: rendition.sanitizedFilename(exportData.fileExtension))
+        }
+        else {
+            let savePanel = NSSavePanel()
+            savePanel.nameFieldStringValue = rendition.sanitizedFilename(exportData.fileExtension)
+            
+            guard savePanel.runModal() == .OK, let panelUrl = savePanel.url else { return }
+            urlToSaveTo = panelUrl
+        }
+        
+        guard let urlToSaveTo else { return }
         
         do {
             try rendition.extract(to: urlToSaveTo)
         } catch {
             NSAlert(title: error.localizedDescription)
                 .runModal()
+        }
+    }
+}
+
+class OpenPrompt {
+    static func getExportDir() -> URL? {
+        let panel = NSOpenPanel()
+        panel.title = "Directory to export to"
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.canChooseFiles = false
+        panel.prompt = "Export"
+        
+        if panel.runModal() == .OK, let destinationURL = panel.url {
+            return destinationURL
+        }
+        else {
+            return nil
         }
     }
 }

@@ -22,6 +22,7 @@ class RenditionListViewController: NSViewController {
     lazy var allItemsSnapshot = addSnapshot(collectionToAdd: collection)
     
     var itemToDeleteIndexPath: IndexPath? = nil
+    var lastSelectedIndexPath: IndexPath?
     
     let fileURL: URL
     
@@ -76,7 +77,7 @@ class RenditionListViewController: NSViewController {
             return header
         }
         
-        collectionView.allowsMultipleSelection = false
+        collectionView.allowsMultipleSelection = true
         collectionView.isSelectable = true
         collectionView.delegate = self
         collectionView.menuProvider = self
@@ -172,6 +173,18 @@ class RenditionListViewController: NSViewController {
         }
     }
     
+    func exportItemsAtIndexPaths(_ indexPaths: Set<IndexPath>) {
+        guard let destinationURL = OpenPrompt.getExportDir() else { return }
+        
+        for indexPath in indexPaths {
+            guard let item = dataSource.itemIdentifier(for: indexPath) else {
+                continue
+            }
+            
+            SavePrompt.exportItem(rendition: item, dir: destinationURL)
+        }
+    }
+    
     deinit {
         if let observer = scrollObserver {
             NotificationCenter.default.removeObserver(observer)
@@ -227,6 +240,14 @@ extension RenditionListViewController {
 extension RenditionListViewController: MenuProvider {
     
     func collectionView(_ collectionView: NSCollectionView, menuForItemAt indexPath: IndexPath) -> NSMenu? {
+        if collectionView.selectionIndexPaths.count > 1 {
+            return NSMenu(items: [
+                ClosureMenuItem(title: "Export items...") {
+                    self.exportItemsAtIndexPaths(collectionView.selectionIndexPaths)
+                }
+            ])
+        }
+        
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
         let copyName = ClosureMenuItem(title: "Copy Name") {
             Clipboard.copyString(item.name)
@@ -275,7 +296,7 @@ extension RenditionListViewController: MenuProvider {
             items.insert(saveImageAs, at: 0)
             items.insert(.separator(), at: 1)
                 
-            let exportItem = ClosureMenuItem(title: "Export Item") {
+            let exportItem = ClosureMenuItem(title: "Export Item...") {
                 SavePrompt.exportItem(rendition: item)
             }
             items.insert(exportItem, at: 0)
@@ -375,14 +396,7 @@ extension RenditionListViewController {
     
     @objc
     func exportCatalogClicked(_ sender: Any?) {
-        let panel = NSOpenPanel()
-        panel.title = "Directory to export to"
-        panel.canChooseDirectories = true
-        panel.canCreateDirectories = true
-        panel.canChooseFiles = false
-        panel.prompt = "Export"
-        
-        guard panel.runModal() == .OK, let destinationURL = panel.url else { return }
+        guard let destinationURL = OpenPrompt.getExportDir() else { return }
         
         do {
             try AssetCatalogWrapper.shared.extract(collection: collection, to: destinationURL)
@@ -405,7 +419,7 @@ extension RenditionListViewController {
 extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromiseProviderDelegate {
     // MARK: Item selection
     func collectionView(_ collectionView: NSCollectionView, shouldSelectItemsAt indexPaths: Set<IndexPath>) -> Set<IndexPath> {
-        return [indexPaths.first!]
+        return indexPaths
     }
     
     func collectionView(_ collectionView: NSCollectionView, didSelectItemsAt indexPaths: Set<IndexPath>) {
@@ -415,12 +429,10 @@ extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromisePr
             return
         }
         
-        let layer = collectionView.item(at: firstIndexPath)?.view.layer
-        layer?.borderColor = NSColor.controlAccentColor.cgColor
-        layer?.borderWidth = 3.5 // enlargen border width when selected
+        lastSelectedIndexPath = firstIndexPath
         
         // if we already have an existing info vc then remove it
-        if parent.splitViewItems.count == 3 {
+        if parent.splitViewItems.indices.contains(2) {
             parent.removeSplitViewItem(parent.splitViewItems[2])
         }
         
@@ -460,6 +472,13 @@ extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromisePr
         
         // scroll back to item to make sure it's still in view after changing views
         collectionView.scrollToItems(at: indexPaths, scrollPosition: [.centeredVertically, .centeredHorizontally])
+        
+        // finally, add border to selected items
+        for indexPath in indexPaths {
+            let layer = collectionView.item(at: indexPath)?.view.layer
+            layer?.borderColor = NSColor.controlAccentColor.cgColor
+            layer?.borderWidth = 3.5 // enlargen border width when selected
+        }
     }
     
     func collectionView(_ collectionView: NSCollectionView, didDeselectItemsAt indexPaths: Set<IndexPath>) {
