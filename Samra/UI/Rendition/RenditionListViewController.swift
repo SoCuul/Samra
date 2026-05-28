@@ -367,7 +367,26 @@ extension RenditionListViewController: MenuProvider {
 }
 
 // Responder chain
-extension RenditionListViewController {
+extension RenditionListViewController: NSUserInterfaceValidations {
+    @objc
+    func copy(_ sender: Any?) {
+        guard let indexPath = collectionView.selectionIndexPaths.first,
+              let rendition = dataSource.itemIdentifier(for: indexPath) else { return }
+        
+        switch rendition.representation {
+            case .image(let cgImage):
+                Clipboard.copyImage(cgImage)
+            case .color(let cgColor):
+                Clipboard.copyColor(cgColor)
+            case .rawData(let data):
+                if let string = String(data:data, encoding:.utf8) {
+                    Clipboard.copyString(string)
+                }
+            case .none:
+                return
+        }
+    }
+    
     @objc
     func infoButtonClicked(_ sender: Any?) {
         guard let ass = CUICommonAssetStorage(path: fileURL.path, forWriting: false) else {
@@ -405,6 +424,13 @@ extension RenditionListViewController {
             NSAlert(title: "Failed to export (some) items", message: error.localizedDescription)
                 .runModal()
         }
+    }
+    
+    func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        if item.action == #selector(copy(_:)) {
+            return !collectionView.selectionIndexPaths.isEmpty && collectionView.selectionIndexPaths.count <= 1
+        }
+        return false
     }
 }
 
