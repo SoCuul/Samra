@@ -10,24 +10,19 @@ import AssetCatalogWrapper
 
 // Inspiration taken from the NSDocument implementation in https://github.com/insidegui/AssetCatalogTinkerer
 class AssetCatalogDocument: NSDocument {
+    var assetCatalogURL: URL?
     var input: AssetCatalogInput!
 
     override class var autosavesInPlace: Bool { true }
+    
+    override class func canConcurrentlyReadDocuments(ofType typeName: String) -> Bool { true }
 
     override func read(from url: URL, ofType typeName: String) throws {
         guard let urlToOpen = parseCatalogURL(url) else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSUserCancelledError)
         }
         
-        do {
-            input = try AssetCatalogInput(fileURL: urlToOpen)
-        } catch {
-            let alert = NSAlert()
-            alert.messageText = "Unable to load Assets file"
-            alert.informativeText = "Error: \(error.localizedDescription)"
-            alert.runModal()
-            throw NSError(domain: NSCocoaErrorDomain, code: NSUserCancelledError)
-        }
+        assetCatalogURL = urlToOpen
     }
 
     override func makeWindowControllers() {
@@ -35,8 +30,10 @@ class AssetCatalogDocument: NSDocument {
             openPanel.cancel(nil)
         }
         
+        guard let assetCatalogURL else { return }
+        
         // Open new window with asset catalog VC
-        let windowController = WindowController(kind: .assetCatalog(input))
+        let windowController = WindowController(kind: .assetCatalog(assetCatalogURL))
         addWindowController(windowController)
         windowController.showWindow(self)
     }

@@ -31,7 +31,9 @@ func parseCatalogURL(_ url: URL) -> URL? {
                 urlToOpen = appNameURL
             }
             else {
-                NSAlert(title: "Assets.car file does not exist for selected Application", message: url.path).runModal()
+                Task { @MainActor in
+                    NSAlert(title: "Assets.car file does not exist for selected application", message: url.path).runModal()
+                }
                 return nil
             }
             

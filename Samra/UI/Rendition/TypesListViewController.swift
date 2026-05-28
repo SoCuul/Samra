@@ -11,23 +11,28 @@ import AssetCatalogWrapper
 class TypesListViewController: NSViewController {
     typealias SectionClickedHandler = (RenditionType) -> Void
     
-    let changeHandler: SectionClickedHandler
+    var changeHandler: SectionClickedHandler?
     
-    let allTypes: [RenditionType]
+    var allTypes: [RenditionType] = []
     // the types shown in the UI, if there is a search session, this may not be equal to allTypes
     // depending on if the search result's types are less than allTypes
-    var types: [RenditionType]
+    var types: [RenditionType] = []
     
     // for when manually doing select and deselectRow
     var ignoreChanges: Bool = false
     
     var tableView: NSTableView!
     
-    init(types: [RenditionType], changeHandler: @escaping SectionClickedHandler) {
+    init() {
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    func load(types: [RenditionType], changeHandler: @escaping SectionClickedHandler) {
         self.types = types
         self.allTypes = types
         self.changeHandler = changeHandler
-        super.init(nibName: nil, bundle: nil)
+        
+        tableView.reloadData()
     }
     
     required init?(coder: NSCoder) {
@@ -113,7 +118,7 @@ extension TypesListViewController: NSTableViewDataSource, NSTableViewDelegate {
     
     func changeSection(to index: Int) {
         if !ignoreChanges {
-            changeHandler(types[index])
+            changeHandler?(types[index])
         }
     }
     

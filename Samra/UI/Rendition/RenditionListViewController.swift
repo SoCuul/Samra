@@ -23,17 +23,23 @@ class RenditionListViewController: NSViewController {
     
     var itemToDeleteIndexPath: IndexPath? = nil
     
-    var catalog: CUICatalog
-    var collection: RenditionCollection
     let fileURL: URL
+    
+    var catalog: CUICatalog?
+    var collection: RenditionCollection = []
     
     private var scrollObserver: NSObjectProtocol?
     
-    init(catalog: CUICatalog, collection: RenditionCollection, fileURL: URL) {
-        self.catalog = catalog
-        self.collection = collection
+    init(fileURL: URL) {
         self.fileURL = fileURL
         super.init(nibName: nil, bundle: nil)
+    }
+    
+    func load(catalog: CUICatalog, collection: RenditionCollection) {
+        self.catalog = catalog
+        self.collection = collection
+        
+        addSnapshot(collectionToAdd: collection)
     }
     
     var splitViewParent: CollapseNotifierSplitViewController? {
@@ -134,18 +140,10 @@ class RenditionListViewController: NSViewController {
     }
     
     @discardableResult
-    func refreshAssetCatalog() -> Bool {
-        do {
-            let (newCatalog, newCollection) = try AssetCatalogWrapper.shared.renditions(forCarArchive: fileURL)
-            self.catalog = newCatalog
-            self.collection = newCollection
-            addSnapshot(collectionToAdd: collection)
-            return true
-        } catch {
-            NSAlert(title: "Failed to refresh Asset Catalog", message: error.localizedDescription)
-                .runModal()
-            return false
-        }
+    func refreshAssetCatalog() async -> Bool {
+        guard let windowController = view.window?.windowController as? WindowController else { return false }
+        
+        return await windowController.loadAssetCatalog(fileURL: fileURL)
     }
     
     func deselect() {
@@ -333,9 +331,12 @@ extension RenditionListViewController: MenuProvider {
         }
         
         do {
-            try catalog.removeItem(item, fileURL: fileURL)
+            try catalog?.removeItem(item, fileURL: fileURL)
             NSApplication.shared.abortModal()
-            refreshAssetCatalog()
+            
+            Task {
+                await refreshAssetCatalog()
+            }
         } catch {
             NSAlert(title: "Failed to remove \(item.name)", message: error.localizedDescription)
                 .runModal()
@@ -423,13 +424,17 @@ extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromisePr
             parent.removeSplitViewItem(parent.splitViewItems[2])
         }
         
+        guard let catalog = catalog else { return }
+        
         let view = RenditionInformationView(rendition: item, catalog: catalog, fileURL: fileURL, canEdit: true, canDelete: true) { [unowned self] change in
-            switch change {
-            case .delete:
-                refreshAssetCatalog()
-            case .edit:
-                if refreshAssetCatalog() {
-                    self.collectionView(collectionView, didSelectItemsAt: indexPaths)
+            Task {
+                switch change {
+                case .delete:
+                    await refreshAssetCatalog()
+                case .edit:
+                    if await refreshAssetCatalog() {
+                        self.collectionView(collectionView, didSelectItemsAt: indexPaths)
+                    }
                 }
             }
         }

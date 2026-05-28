@@ -14,6 +14,8 @@ class WindowController: NSWindowController {
     var typesSidebar: TypesListViewController?
     var renditionVC: RenditionListViewController?
     
+    var loadingTask: Task<LoadingSheetViewController?, any Error>?
+    
     enum Kind {
         /// The 'Welcome to Samra' screen
         case welcome
@@ -28,18 +30,18 @@ class WindowController: NSWindowController {
         case diffShow([RenditionDiff], CUICatalog, URL)
         
         /// Show a View Controller of a rendition collection
-        case assetCatalog(AssetCatalogInput)
+        case assetCatalog(URL)
     }
     
     convenience init(kind: Kind) {
         let viewController: NSViewController
+        let splitViewController = CollapseNotifierSplitViewController()
         
         var localTypesSidebar: TypesListViewController? = nil
         var localRenditionVC: RenditionListViewController? = nil
         
         switch kind {
         case .welcome:
-            let splitViewController = CollapseNotifierSplitViewController()
             let welcomeViewController = WelcomeViewController()
             let list = PastFilesListViewController()
             splitViewController.addSplitViewItem(NSSplitViewItem(viewController: welcomeViewController))
@@ -48,15 +50,9 @@ class WindowController: NSWindowController {
             splitViewController.splitViewItems[1].minimumThickness = 205
             splitViewController.splitViewItems[1].canCollapse = false
             viewController = splitViewController
-        case .assetCatalog(let input):
-            let splitViewController = CollapseNotifierSplitViewController()
-            localRenditionVC = RenditionListViewController(catalog: input.catalog, collection: input.collection,
-                                                          fileURL: input.fileURL)
-            localTypesSidebar = TypesListViewController(types: input.collection.map(\.type)) { type in
-                if let index = localRenditionVC!.dataSource.snapshot().indexOfSection(type) {
-                    localRenditionVC!.collectionView.scrollToItems(at: [IndexPath(item: 0, section: index)], scrollPosition: .top)
-                }
-            }
+        case .assetCatalog(let fileURL):
+            localRenditionVC = RenditionListViewController(fileURL: fileURL)
+            localTypesSidebar = TypesListViewController()
             
             splitViewController.addSplitViewItem(NSSplitViewItem(sidebarWithViewController: localTypesSidebar!))
             splitViewController.addSplitViewItem(NSSplitViewItem(viewController: localRenditionVC!))
@@ -86,7 +82,7 @@ class WindowController: NSWindowController {
         self.renditionVC = localRenditionVC
         
         switch kind {
-        case .assetCatalog(let input):
+        case .assetCatalog(let fileURL):
             let toolbar = NSToolbar()
             toolbar.delegate = self
             toolbar.displayMode = .iconOnly
@@ -95,9 +91,9 @@ class WindowController: NSWindowController {
             toolbar.insertItem(withItemIdentifier: .searchBar, at: 1)
             window.animationBehavior = .documentWindow
             window.delegate = self
-            window.title = input.fileURL.lastPathComponent
+            window.title = fileURL.lastPathComponent
             if #available(macOS 11, *) {
-                window.subtitle = input.fileURL.deletingLastPathComponent().lastPathComponent
+                window.subtitle = fileURL.deletingLastPathComponent().lastPathComponent
             }
         case .welcome:
             window.makeTitleBarTransparentAndUnresizable()
@@ -126,13 +122,20 @@ class WindowController: NSWindowController {
                 window.close()
             }
         }
+        
+        // Load asset catalog data
+        if case .assetCatalog(let fileURL) = kind {
+            Task.detached(priority: .userInitiated) {
+                await self.loadAssetCatalog(fileURL: fileURL)
+            }
+        }
     }
 }
 
 extension WindowController: NSWindowDelegate {
     func windowDidBecomeKey(_ notification: Notification) {
         if let vc = window?.contentViewController as? CollapseNotifierSplitViewController {
-            if let _ = vc.getTypesListVC() {
+            if (vc.getTypesListVC()?.types.count ?? 0) > 0 {
                 // Show & update sections for window (if applicable)
                 NSApp.mainMenu?.item(withTitle: "Sections")?.isHidden = false
                 NSApp.mainMenu?.item(withTitle: "Sections")?.submenu?.delegate = typesSidebar
@@ -208,5 +211,79 @@ extension WindowController: NSToolbarDelegate {
     
     func toolbar(_ toolbar: NSToolbar, itemIdentifier: NSToolbarItem.Identifier, canBeInsertedAt index: Int) -> Bool {
         return true
+    }
+}
+
+extension WindowController {
+    func dismissProgressVC() {
+        Task {
+            // Cancel/close progress sheet
+            loadingTask?.cancel()
+            
+            if let progressVC = try? await loadingTask?.value {
+                progressVC.dismiss(nil)
+            }
+        }
+    }
+    
+    @discardableResult
+    func loadAssetCatalog(fileURL: URL) async -> Bool {
+        loadingTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 100_000_000)
+                
+                let progressVC = LoadingSheetViewController()
+                progressVC.onCancel = { [weak self] in
+                    self?.loadingTask?.cancel()
+                }
+                
+                self?.contentViewController?.presentAsSheet(progressVC)
+                
+                return progressVC
+            }
+            catch {
+                return nil
+            }
+        }
+        
+        do {
+            let input = try await Task.detached(priority: .userInitiated) {
+                try AssetCatalogInput(fileURL: fileURL)
+            }.value
+            
+            await MainActor.run {
+                self.dismissProgressVC()
+                
+                // Load asset collection view
+                self.renditionVC?.load(
+                    catalog: input.catalog,
+                    collection: input.collection
+                )
+                
+                // Load sidebar data
+                self.typesSidebar?.load(types: input.collection.map(\.type)) { type in
+                    if let index = self.renditionVC!.dataSource.snapshot().indexOfSection(type) {
+                        self.renditionVC!.collectionView.scrollToItems(at: [IndexPath(item: 0, section: index)], scrollPosition: .top)
+                    }
+                }
+            }
+            
+            return true
+        }
+        catch {
+            await MainActor.run {
+                self.dismissProgressVC()
+                
+                // Show error
+                DispatchQueue.main.async {
+                    let alert = NSAlert()
+                    alert.messageText = "Unable to load Assets file"
+                    alert.informativeText = "Error: \(error.localizedDescription)"
+                    alert.runModal()
+                }
+            }
+            
+            return false
+        }
     }
 }
