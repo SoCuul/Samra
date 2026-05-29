@@ -28,8 +28,12 @@ class RenditionListViewController: NSViewController {
     
     var catalog: CUICatalog?
     var collection: RenditionCollection = []
+    var renditionsCount = 0
     
     private var scrollObserver: NSObjectProtocol?
+    
+    private var optimizePerformance = false
+    private var searchTimer: Timer?
     
     init(fileURL: URL) {
         self.fileURL = fileURL
@@ -39,6 +43,11 @@ class RenditionListViewController: NSViewController {
     func load(catalog: CUICatalog, collection: RenditionCollection) {
         self.catalog = catalog
         self.collection = collection
+        self.renditionsCount = collection.reduce(0) { $0 + $1.renditions.count }
+        
+        if renditionsCount > 10000 {
+            optimizePerformance = true
+        }
         
         addSnapshot(collectionToAdd: collection)
     }
@@ -136,7 +145,7 @@ class RenditionListViewController: NSViewController {
             snapshot.appendItems(item.renditions, toSection: item.type)
         }
         
-        dataSource.apply(snapshot)
+        dataSource.apply(snapshot, animatingDifferences: !optimizePerformance)
         return snapshot
     }
     
@@ -608,8 +617,25 @@ extension RenditionListViewController: NSSearchFieldDelegate {
     func controlTextDidChange(_ obj: Notification) {
         guard let searchText = (obj.object as? NSSearchField)?.stringValue else { return }
         
+        searchTimer?.invalidate()
+        
+        if optimizePerformance {
+            // Debounce input to avoid lagging on large catalogs
+            searchTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { [weak self] _ in
+                self?.handleControlTextUpdate(searchText)
+            }
+        }
+        else {
+            handleControlTextUpdate(searchText)
+        }
+    }
+    
+    private func handleControlTextUpdate(_ searchText: String) {
         if searchText.isEmpty {
-            dataSource.apply(allItemsSnapshot)
+            dataSource.apply(
+                allItemsSnapshot,
+                animatingDifferences: !optimizePerformance
+            )
             setSidebarTypes(nil)
             return
         }
@@ -635,6 +661,5 @@ extension RenditionListViewController: NSSearchFieldDelegate {
         addSnapshot(collectionToAdd: newCollection)
         
         setSidebarTypes(newSidebarTypes)
-        
     }
 }
