@@ -21,7 +21,7 @@ class RenditionTypeHeaderView: NSView, NSCollectionViewElement {
         
         addSubview(typeLabel)
         
-        amountOfItemsLabel = NSTextField(labelWithString: "\(numberOfItems) Items")
+        amountOfItemsLabel = NSTextField(labelWithString: "\(numberOfItems) Item\(numberOfItems == 1 ? "" : "s")")
         amountOfItemsLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(amountOfItemsLabel)
         
