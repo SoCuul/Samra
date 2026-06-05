@@ -171,7 +171,7 @@ class RenditionListViewController: NSViewController {
         }
         
         // if we already have an existing info vc then remove it
-        if parent.splitViewItems.count == 3 {
+        if parent.splitViewItems.indices.contains(2) {
             parent.removeSplitViewItem(parent.splitViewItems[2])
         }
         

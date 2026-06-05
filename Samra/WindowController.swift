@@ -9,7 +9,7 @@ import Cocoa
 import AssetCatalogWrapper
 
 class WindowController: NSWindowController {
-    
+    var kind: Kind?
     var inputMonitor: Any?
     var typesSidebar: TypesListViewController?
     var renditionVC: RenditionListViewController?
@@ -78,6 +78,7 @@ class WindowController: NSWindowController {
         window.styleMask.insert(.fullSizeContentView)
         self.init(window: window)
         
+        self.kind = kind
         self.typesSidebar = localTypesSidebar
         self.renditionVC = localRenditionVC
         
@@ -87,8 +88,6 @@ class WindowController: NSWindowController {
             toolbar.delegate = self
             toolbar.displayMode = .iconOnly
             window.toolbar = toolbar
-            toolbar.insertItem(withItemIdentifier: .infoButton, at: 0)
-            toolbar.insertItem(withItemIdentifier: .searchBar, at: 1)
             window.animationBehavior = .documentWindow
             window.delegate = self
             window.title = fileURL.lastPathComponent
@@ -109,8 +108,6 @@ class WindowController: NSWindowController {
             toolbar.delegate = self
             window.toolbar = toolbar
             window.title = "Diff"
-            toolbar.insertItem(withItemIdentifier: .flexibleSpace, at: 0)
-            toolbar.insertItem(withItemIdentifier: .searchBar, at: 1)
             window.animationBehavior = .documentWindow
             window.delegate = self
         }
@@ -153,7 +150,25 @@ extension WindowController: NSWindowDelegate {
 
 extension WindowController: NSToolbarDelegate {
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        return []
+        switch kind {
+            case .assetCatalog(_), .diffShow(_, _, _):
+                var sidebarTrackingSeparator: NSToolbarItem.Identifier?
+                
+                if #available(macOS 11.0, *) {
+                    sidebarTrackingSeparator = .sidebarTrackingSeparator
+                }
+                
+                return [
+                    .toggleSidebar,
+                    sidebarTrackingSeparator,
+                    
+                    .infoButton,
+                    .searchBar
+                ].compactMap { $0 }
+                
+            default:
+                return []
+        }
     }
     
     func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
@@ -184,6 +199,8 @@ extension WindowController: NSToolbarDelegate {
                 return item
             }
         case .infoButton:
+            guard case .assetCatalog(_) = kind else { break }
+                
             let toolbarItem = NSToolbarItem(itemIdentifier: itemIdentifier)
             let button = NSButton()
             if #available(macOS 11, *) {
@@ -198,6 +215,7 @@ extension WindowController: NSToolbarDelegate {
             button.bezelStyle = .texturedRounded
             toolbarItem.view = button
             toolbarItem.label = "Info"
+            toolbarItem.toolTip = "Catalog Info"
             
 //            toolbarItem.action = #selector(RenditionListViewController.infoPopoverItemClicked(sender:))
 //            toolbarItem.target = (contentViewController as? NSSplitViewController)?.splitViewItems[1].viewController as? RenditionListViewController
@@ -207,6 +225,8 @@ extension WindowController: NSToolbarDelegate {
         default:
             return NSToolbarItem(itemIdentifier: itemIdentifier)
         }
+        
+        return nil
     }
     
     func toolbar(_ toolbar: NSToolbar, itemIdentifier: NSToolbarItem.Identifier, canBeInsertedAt index: Int) -> Bool {

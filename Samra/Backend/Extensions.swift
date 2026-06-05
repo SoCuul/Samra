@@ -16,7 +16,7 @@ extension UTType {
     static var carFile: UTType = UTType(filenameExtension: "car")!
 }
 
-extension NSUserInterfaceItemIdentifier: ExpressibleByStringLiteral {
+extension NSUserInterfaceItemIdentifier: @retroactive ExpressibleByStringLiteral {
     public init(stringLiteral value: StringLiteralType) {
         self.init(value)
     }
