@@ -47,10 +47,10 @@ class AboutViewController: NSViewController {
         view.addSubview(explanationLabel)
         
         NSLayoutConstraint.activate([
-            imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 40),
+            imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 28),
             imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             
-            titleLabel.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 15),
+            titleLabel.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 28),
             titleLabel.centerYAnchor.constraint(equalTo: imageView.topAnchor, constant: 32),
             
             versionLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
@@ -69,13 +69,17 @@ class AboutViewController: NSViewController {
         twitterButton.bezelStyle = .rounded
         sourceCodeButton.bezelStyle = .rounded
         
+        twitterButton.refusesFirstResponder = true
+        sourceCodeButton.refusesFirstResponder = true
+        
         let buttonsStackView = NSStackView(views: [twitterButton, sourceCodeButton])
         buttonsStackView.translatesAutoresizingMaskIntoConstraints = false
+        buttonsStackView.spacing = 16
         
         view.addSubview(buttonsStackView)
         NSLayoutConstraint.activate([
-            buttonsStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -26.4),
-            buttonsStackView.centerYAnchor.constraint(equalTo: view.bottomAnchor, constant: -25),
+            buttonsStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            buttonsStackView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -16),
             
 //            twitterButton.widthAnchor.constraint(equalToConstant: 154),
 //            sourceCodeButton.widthAnchor.constraint(equalToConstant: 160)

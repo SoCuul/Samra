@@ -93,7 +93,7 @@
                                     <action selector="infoButtonClicked:" target="-1" id="huh-m1-sLD"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Export Items To..." id="uwW-lc-J4M">
+                            <menuItem title="Export Catalog Items..." id="uwW-lc-J4M">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="exportCatalogClicked:" target="-1" id="Xpl-tC-tso"/>

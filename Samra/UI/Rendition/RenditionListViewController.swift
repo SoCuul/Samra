@@ -253,7 +253,7 @@ extension RenditionListViewController: MenuProvider {
     func collectionView(_ collectionView: NSCollectionView, menuForItemAt indexPath: IndexPath) -> NSMenu? {
         if collectionView.selectionIndexPaths.count > 1 {
             return NSMenu(items: [
-                ClosureMenuItem(title: "Export items...") {
+                ClosureMenuItem(title: "Export \(collectionView.selectionIndexPaths.count) items...") {
                     self.exportItemsAtIndexPaths(collectionView.selectionIndexPaths)
                 }
             ])
@@ -441,7 +441,7 @@ extension RenditionListViewController: NSUserInterfaceValidations {
         if item.action == #selector(copy(_:)) {
             return !collectionView.selectionIndexPaths.isEmpty && collectionView.selectionIndexPaths.count <= 1
         }
-        return false
+        return responds(to: item.action)
     }
 }
 
@@ -473,11 +473,6 @@ extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromisePr
         
         lastSelectedIndexPath = firstIndexPath
         
-        // if we already have an existing info vc then remove it
-        if parent.splitViewItems.indices.contains(2) {
-            parent.removeSplitViewItem(parent.splitViewItems[2])
-        }
-        
         guard let catalog = catalog else { return }
         
         let view = RenditionInformationView(rendition: item, catalog: catalog, fileURL: fileURL, canEdit: true, canDelete: true) { [unowned self] change in
@@ -493,44 +488,50 @@ extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromisePr
             }
         }
         
-        let renditionVC = NSHostingController(rootView: view)
-        renditionVC.identifier = "RenditionInfo"
+        // check if inspector already exists
+        if parent.splitViewItems.indices.contains(2) {
+            (parent.splitViewItems[2].viewController as? NSHostingController<RenditionInformationView>)?.rootView = view
+            parent.splitViewItems[2].isCollapsed = false
+        }
+        else {
+            let renditionVC = NSHostingController(rootView: view)
+            renditionVC.identifier = "RenditionInfo"
+            
+            let splitViewItem = NSSplitViewItem(contentListWithViewController: renditionVC)
+            splitViewItem.minimumThickness = 340
+            splitViewItem.canCollapse = true
+            splitViewItem.preferredThicknessFraction = 0
+            
+            parent.addSplitViewItem(splitViewItem)
+            
+            collectionView.collectionViewLayout = Self.makeLayout(layout: .listInspector)
+            collectionView.stringIdentifier = LayoutMode.listInspector.rawValue
+            
+            // scroll back to item to make sure it's still in view after changing views
+            DispatchQueue.main.async {
+                collectionView.scrollToItems(at: indexPaths, scrollPosition: .nearestHorizontalEdge)
+            }
+        }
         
-        let splitViewItem = NSSplitViewItem(contentListWithViewController: renditionVC)
-        splitViewItem.minimumThickness = 340
-        splitViewItem.canCollapse = true
-        splitViewItem.preferredThicknessFraction = 0
-        
-        parent.addSplitViewItem(splitViewItem)
-        
-        collectionView.collectionViewLayout = Self.makeLayout(layout: .listInspector)
-        collectionView.stringIdentifier = LayoutMode.listInspector.rawValue
+        // ensure border gets added, even if rendered out of view
+        DispatchQueue.main.async {
+            for indexPath in indexPaths {
+                if let item = collectionView.item(at: indexPath) as? RenditionCollectionViewItem {
+                    item.applySelectionStyle(selected: true)
+                }
+            }
+        }
         
         // update selected sidebar section
         let vc = self.splitViewParent?.splitViewItems[0].viewController as? TypesListViewController
         if let vc {
+            vc.ignoreChanges = true
             vc.tableView.selectRowIndexes(IndexSet(integer: indexPaths.first?.section ?? 0), byExtendingSelection: false)
-        }
-        
-        // scroll back to item to make sure it's still in view after changing views
-        //collectionView.scrollToItems(at: indexPaths, scrollPosition: [.centeredVertically, .centeredHorizontally])
-        
-        // finally, add border to selected items
-        for indexPath in indexPaths {
-            let layer = collectionView.item(at: indexPath)?.view.layer
-            layer?.borderColor = NSColor.controlAccentColor.cgColor
-            layer?.borderWidth = 3.5 // enlargen border width when selected
+            vc.ignoreChanges = false
         }
     }
     
-    func collectionView(_ collectionView: NSCollectionView, didDeselectItemsAt indexPaths: Set<IndexPath>) {
-        for indexPath in indexPaths {
-            let layer = collectionView.item(at: indexPath)?.view.layer
-            layer?.borderColor = NSColor.systemGray.cgColor
-            // item is no longer in focus, set it's border width to the standard amount 
-            layer?.borderWidth = 1.87
-        }
-    }
+    func collectionView(_ collectionView: NSCollectionView, didDeselectItemsAt indexPaths: Set<IndexPath>) {}
     
     override func performTextFinderAction(_ sender: Any?) {
         for item in view.window?.toolbar?.items ?? [] {

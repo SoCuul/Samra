@@ -123,4 +123,15 @@ class RenditionCollectionViewItem: NSCollectionViewItem {
         representationPreview.removeFromSuperview()
         representationPreview = nil
     }
+    
+    override var isSelected: Bool {
+        didSet {
+           applySelectionStyle(selected: isSelected)
+        }
+    }
+    
+    func applySelectionStyle(selected: Bool) {
+        view.layer?.borderColor = selected ? NSColor.controlAccentColor.cgColor : NSColor.systemGray.cgColor
+        view.layer?.borderWidth = selected ? 3.5 : 1.87
+    }
 }

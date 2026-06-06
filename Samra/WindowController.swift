@@ -46,7 +46,7 @@ class WindowController: NSWindowController {
             let list = PastFilesListViewController()
             splitViewController.addSplitViewItem(NSSplitViewItem(viewController: welcomeViewController))
             splitViewController.addSplitViewItem(NSSplitViewItem(sidebarWithViewController: list))
-            splitViewController.splitViewItems[0].minimumThickness = 340
+            splitViewController.splitViewItems[0].minimumThickness = 380
             splitViewController.splitViewItems[1].minimumThickness = 205
             splitViewController.splitViewItems[1].canCollapse = false
             viewController = splitViewController
@@ -215,7 +215,7 @@ extension WindowController: NSToolbarDelegate {
             button.bezelStyle = .texturedRounded
             toolbarItem.view = button
             toolbarItem.label = "Info"
-            toolbarItem.toolTip = "Catalog Info"
+            toolbarItem.toolTip = "Get Info"
             
 //            toolbarItem.action = #selector(RenditionListViewController.infoPopoverItemClicked(sender:))
 //            toolbarItem.target = (contentViewController as? NSSplitViewController)?.splitViewItems[1].viewController as? RenditionListViewController
