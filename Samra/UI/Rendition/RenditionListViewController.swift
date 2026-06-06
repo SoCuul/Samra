@@ -117,22 +117,24 @@ class RenditionListViewController: NSViewController {
         view = scrollView
         view.frame.size = CGSize(width: 724, height: 676)
         
-//        let observer = NotificationCenter.default.addObserver(forName: NSScrollView.didEndLiveScrollNotification, object: scrollView, queue: nil) { [weak self] _ in
-//            guard let self = self else { return }
-//            let vc = self.splitViewParent?.splitViewItems[0].viewController as? TypesListViewController
-//            guard let vc, let currentSection = self.collectionView.indexPathsForVisibleItems().first?.section else {
-//                return
-//            }
-//            
-//            vc.ignoreChanges = true
-//            vc.tableView.deselectRow(vc.tableView.selectedRow)
-//            vc.tableView.selectRowIndexes([currentSection], byExtendingSelection: true)
-//            vc.ignoreChanges = false
-//        }
-//        
-//        self.scrollObserver = observer
+        //        let observer = NotificationCenter.default.addObserver(forName: NSScrollView.didEndLiveScrollNotification, object: scrollView, queue: nil) { [weak self] _ in
+        //            guard let self = self else { return }
+        //            let vc = self.splitViewParent?.splitViewItems[0].viewController as? TypesListViewController
+        //            guard let vc, let currentSection = self.collectionView.indexPathsForVisibleItems().first?.section else {
+        //                return
+        //            }
+        //
+        //            vc.ignoreChanges = true
+        //            vc.tableView.deselectRow(vc.tableView.selectedRow)
+        //            vc.tableView.selectRowIndexes([currentSection], byExtendingSelection: true)
+        //            vc.ignoreChanges = false
+        //        }
+        //
+        //        self.scrollObserver = observer
         
-        collectionView.registerForDraggedTypes(NSImage.imageTypes.map { .init($0) })
+        collectionView.registerForDraggedTypes(
+            NSImage.imageTypes.map { .init($0) } + [.color]
+        )
         collectionView.setDraggingSourceOperationMask(.every, forLocal: true)
         collectionView.setDraggingSourceOperationMask(.every, forLocal: false)
     }
@@ -454,7 +456,12 @@ extension RenditionListViewController {
 extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromiseProviderDelegate {
     // MARK: Item selection
     func collectionView(_ collectionView: NSCollectionView, shouldSelectItemsAt indexPaths: Set<IndexPath>) -> Set<IndexPath> {
-        return indexPaths
+        let existingSection = collectionView.selectionIndexPaths.first?.section
+        let targetSection = existingSection ?? indexPaths.first?.section
+        
+        guard let targetSection else { return indexPaths }
+        
+        return indexPaths.filter { $0.section == targetSection }
     }
     
     func collectionView(_ collectionView: NSCollectionView, didSelectItemsAt indexPaths: Set<IndexPath>) {
@@ -506,7 +513,7 @@ extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromisePr
         }
         
         // scroll back to item to make sure it's still in view after changing views
-        collectionView.scrollToItems(at: indexPaths, scrollPosition: [.centeredVertically, .centeredHorizontally])
+        //collectionView.scrollToItems(at: indexPaths, scrollPosition: [.centeredVertically, .centeredHorizontally])
         
         // finally, add border to selected items
         for indexPath in indexPaths {
