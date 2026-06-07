@@ -109,6 +109,16 @@ extension NSImage {
     }
 }
 
+extension NSImageView {
+    convenience init(image: NSImage?) {
+        if let image {
+            self.init(image: image)
+        } else {
+            self.init()
+        }
+    }
+}
+
 public extension View {
     /// Modify a view with a `ViewBuilder` closure.
     ///

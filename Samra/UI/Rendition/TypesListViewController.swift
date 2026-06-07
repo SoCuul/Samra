@@ -8,31 +8,50 @@
 import Cocoa
 import AssetCatalogWrapper
 
+struct RenditionCollectionLookupNames: Hashable {
+    let type: RenditionType
+    let names: [String]
+}
+
+private enum OutlineItem: Hashable {
+    case all
+    case separator
+    case section(RenditionCollectionLookupNames)
+    case namedLookup(String)
+}
+
 class TypesListViewController: NSViewController {
-    typealias SectionClickedHandler = (RenditionType) -> Void
+    /// ```
+    /// (sectionName, lookupName)
+    /// eg: ("Image", "ExampleIcon")
+    /// ```
+    typealias SectionClickedHandler = (String?, String?) -> Void
+
+    var collection: RenditionCollection?
+    private var items: [OutlineItem]?
     
     var changeHandler: SectionClickedHandler?
+    var types: [RenditionType] {
+        collection?.map { $0.type } ?? []
+    }
     
-    var allTypes: [RenditionType] = []
-    // the types shown in the UI, if there is a search session, this may not be equal to allTypes
-    // depending on if the search result's types are less than allTypes
-    var types: [RenditionType] = []
-    
-    // for when manually doing select and deselectRow
-    var ignoreChanges: Bool = false
-    
-    var tableView: NSTableView!
+    var outlineView: NSOutlineView!
     
     init() {
         super.init(nibName: nil, bundle: nil)
     }
     
-    func load(types: [RenditionType], changeHandler: @escaping SectionClickedHandler) {
-        self.types = types
-        self.allTypes = types
+    func load(collection: RenditionCollection, changeHandler: @escaping SectionClickedHandler) {
+        self.collection = collection
         self.changeHandler = changeHandler
+        self.items = [OutlineItem.all, OutlineItem.separator] + collection.map {
+            OutlineItem.section(RenditionCollectionLookupNames(
+                type: $0.type,
+                names: Array(Set($0.renditions.map { $0.namedLookup.name })).sorted()
+            ))
+        }
         
-        tableView.reloadData()
+        outlineView.reloadData()
     }
     
     required init?(coder: NSCoder) {
@@ -40,18 +59,19 @@ class TypesListViewController: NSViewController {
     }
     
     override func loadView() {
-        tableView = NSTableView()
-        tableView.dataSource = self
-        tableView.delegate = self
-        tableView.target = self
-        tableView.headerView = nil
+        outlineView = NSOutlineView()
+        outlineView.dataSource = self
+        outlineView.delegate = self
+        outlineView.headerView = nil
+        outlineView.rowSizeStyle = .default
+        outlineView.indentationPerLevel = 8
         
         let col = NSTableColumn(identifier: "Column")
-        tableView.addTableColumn(col)
+        outlineView.addTableColumn(col)
+        outlineView.outlineTableColumn = col
         
         let scrollView = NSScrollView()
-        scrollView.documentView = tableView
-        scrollView.hasHorizontalScroller = false
+        scrollView.documentView = outlineView
         view = scrollView
         view.frame.size = CGSize(width: 200, height: 0)
     }
@@ -77,56 +97,158 @@ class TypesListViewController: NSViewController {
     }
     
     @objc
-    func goToSection(menuItemSender: NSMenuItem) {
-        changeSection(to: menuItemSender.tag)
-        
-        tableView.selectRowIndexes(IndexSet(integer: menuItemSender.tag), byExtendingSelection: false)
+    func menuSelectSection(menuItemSender: NSMenuItem) {
+        selectSection(index: menuItemSender.tag)
+    }
+    
+    func selectSection(index: Int) {
+        guard let item = items?[index] else { return }
+        let row = outlineView.row(forItem: item)
+        guard row != -1 else { return }
+
+        outlineView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+        view.window?.makeFirstResponder(outlineView)
     }
 }
 
-extension TypesListViewController: NSTableViewDataSource, NSTableViewDelegate {
-    func numberOfRows(in tableView: NSTableView) -> Int {
-        return types.count
-    }
-    
-    func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
-        return 30
-    }
-    
-    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        let type = types[row]
+extension TypesListViewController: NSOutlineViewDelegate {
+    func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
         let cell = NSTableCellView()
-        let imageIconView = NSImageView()
-        imageIconView.image = NSImage(systemName: type.displayIconName)
         
-        let stackView = NSStackView(views: [imageIconView,
-                                            NSTextField(labelWithString: type.description)])
+        var views: [NSView] = []
+        
+        let item = item as! OutlineItem
+        switch item {
+            case .section(let section):
+                let imageView = NSImageView(image: NSImage(systemName: section.type.displayIconName))
+                
+                let textField = NSTextField(labelWithString: section.type.description)
+                textField.maximumNumberOfLines = 1
+                
+                views.append(imageView)
+                views.append(textField)
+                
+            case .namedLookup(let name):
+                let textField = NSTextField(labelWithString: name)
+                textField.maximumNumberOfLines = 1
+                textField.lineBreakMode = .byTruncatingTail
+                textField.cell?.truncatesLastVisibleLine = true
+                
+                views.append(textField)
+                
+            case .all:
+                let imageView = NSImageView(image: NSImage(systemName: "rectangle.stack"))
+                
+                let textField = NSTextField(labelWithString: "All Items")
+                textField.maximumNumberOfLines = 1
+                
+                views.append(imageView)
+                views.append(textField)
+                
+            case .separator:
+                let separator = NSBox()
+                separator.boxType = .separator
+                separator.translatesAutoresizingMaskIntoConstraints = false
+                
+                let cell = NSTableCellView()
+                cell.addSubview(separator)
+                
+                NSLayoutConstraint.activate([
+                    separator.leadingAnchor.constraint(equalTo: cell.leadingAnchor),
+                    separator.trailingAnchor.constraint(equalTo: cell.trailingAnchor),
+                    separator.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
+                ])
+                
+                return cell
+        }
+        
+        let stackView = NSStackView(views: views)
         stackView.translatesAutoresizingMaskIntoConstraints = false
         cell.addSubview(stackView)
         
         NSLayoutConstraint.activate([
-            stackView.leadingAnchor.constraint(equalTo: cell.leadingAnchor),
+            stackView.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 4),
             stackView.trailingAnchor.constraint(equalTo: cell.trailingAnchor),
             stackView.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
         ])
+        
         return cell
     }
     
-    func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
+    func outlineView(_ outlineView: NSOutlineView, heightOfRowByItem item: Any) -> CGFloat {
+        let item = item as? OutlineItem
+        switch item {
+            case .namedLookup(_):
+                return 26
+            case .separator:
+                return 20
+            default:
+                return 30
+        }
+    }
+    
+    func outlineView(_ outlineView: NSOutlineView, shouldSelectItem item: Any) -> Bool {
+        let item = item as! OutlineItem
+        
+        if case .separator = item {
+            return false
+        }
+        
         return true
     }
     
-    func changeSection(to index: Int) {
-        if !ignoreChanges {
-            changeHandler?(types[index])
+    func outlineViewSelectionDidChange(_ notification: Notification) {
+        guard let item = outlineView.item(atRow: outlineView.selectedRow) as? OutlineItem else { return }
+        
+        var sectionType: RenditionType?
+        var name: String?
+        
+        switch item {
+            case .section(let section):
+                sectionType = section.type
+            case .namedLookup(let lookup):
+                name = lookup
+                if let collection,
+                   let match = collection.first(where: { $0.renditions.contains { $0.namedLookup.name == lookup } }) {
+                    sectionType = match.type
+                }
+            default:
+                break
         }
+        
+        changeHandler?(sectionType?.description as? String, name)
+    }
+}
+
+extension TypesListViewController: NSOutlineViewDataSource {
+    func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
+        guard let item = item as? OutlineItem else { return items?.count ?? 0 }
+                
+        if case .section(let section) = item {
+            return section.names.count
+        }
+        
+        return 0
     }
     
-    
-    func tableViewSelectionDidChange(_ notification: Notification) {
-        if tableView.selectedRow >= 0 {
-            changeSection(to: tableView.selectedRow)            
+    func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
+        guard let item = item as? OutlineItem else { return items?[index] as Any }
+        
+        if case .section(let section) = item {
+            return OutlineItem.namedLookup(section.names[index])
         }
+        
+        return NSNull()
+    }
+    
+    func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
+        let item = item as! OutlineItem
+        
+        if case .section(_) = item {
+            return true
+        }
+        
+        return false
     }
 }
 
@@ -141,17 +263,30 @@ extension TypesListViewController : NSMenuDelegate {
         submenu.autoenablesItems = false
         submenu.removeAllItems()
         
-        // add only the types that we have
-        // to the section
-        for (index, item) in allTypes.enumerated() {
-            // make the keyEquivalent index + 1
+        let allItemsMenuItem = NSMenuItem(
+            title: "All Items",
+            action: #selector(menuSelectSection),
+            keyEquivalent: "0",
+            tag: 0
+        )
+        allItemsMenuItem.target = self
+        
+        submenu.addItem(allItemsMenuItem)
+        submenu.addItem(NSMenuItem.separator())
+        
+        for (index, item) in types.enumerated() {
+            // make the keyEquivalent index + 2
             // so that it's less confusing to the user,
             // ie, if `Color` was the first section, this would make it cmd 1
-            // rather than cmd 0
-            let item =  NSMenuItem(title: item.description,
-                                   action: #selector(goToSection),
-                                   keyEquivalent: (index + 1).description, tag: index)
-            submenu.addItem(item)
+            let menuItem = NSMenuItem(
+                title: item.description,
+                action: #selector(menuSelectSection),
+                keyEquivalent: (index + 1).description,
+                tag: index + 2
+            )
+            menuItem.target = self
+            
+            submenu.addItem(menuItem)
         }
     }
 }

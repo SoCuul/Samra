@@ -16,11 +16,11 @@ class RenditionListViewController: NSViewController {
     
     static let titleHeaderIdentifier = "Identifier"
     
-    typealias DataSource = NSCollectionViewDiffableDataSource<RenditionType, Rendition>
+    typealias DataSource = NSCollectionViewDiffableDataSource<String, Rendition>
+    typealias NamedRenditionCollection = [(name: String, type: RenditionType, renditions: [Rendition])]
+    
     var dataSource: DataSource!
     var collectionView: CollectionViewWithMenu!
-    lazy var allItemsSnapshot = addSnapshot(collectionToAdd: collection)
-    
     var itemToDeleteIndexPath: IndexPath? = nil
     var lastSelectedIndexPath: IndexPath?
     
@@ -32,6 +32,8 @@ class RenditionListViewController: NSViewController {
     
     private var scrollObserver: NSObjectProtocol?
     
+    private var currentlyDisplayedCollection: RenditionCollection = []
+    private var currentSearchText: String = ""
     private var optimizePerformance = false
     private var searchTimer: Timer?
     
@@ -44,12 +46,56 @@ class RenditionListViewController: NSViewController {
         self.catalog = catalog
         self.collection = collection
         self.renditionsCount = collection.reduce(0) { $0 + $1.renditions.count }
-        
+        self.currentlyDisplayedCollection = collection
+
         if renditionsCount > 10000 {
             optimizePerformance = true
         }
-        
-        addSnapshot(collectionToAdd: collection)
+
+        addSnapshot(collectionToAdd: namedCollection(collection))
+    }
+
+    private func namedCollection(_ collection: RenditionCollection) -> NamedRenditionCollection {
+        collection.map { (name: $0.type.description, type: $0.type, renditions: $0.renditions) }
+    }
+
+    func filterItems(sectionName: String?, lookupName: String?) {
+        guard let sectionName else {
+            currentlyDisplayedCollection = collection
+            applyCurrentSearch(orElse: { addSnapshot(collectionToAdd: namedCollection(collection)) })
+            return
+        }
+
+        guard let sectionItems = collection.first(where: { $0.type.description == sectionName }) else {
+            currentlyDisplayedCollection = []
+            applyCurrentSearch(orElse: { applySnapshot(collectionToAdd: []) })
+            return
+        }
+
+        if let lookupName {
+            let lookupRenditions = sectionItems.renditions.filter { $0.namedLookup.name == lookupName }
+            currentlyDisplayedCollection = [(type: sectionItems.type, renditions: lookupRenditions)]
+            applyCurrentSearch(orElse: {
+                applySnapshot(collectionToAdd: [(name: lookupName, type: sectionItems.type, renditions: lookupRenditions)])
+            })
+            return
+        }
+
+        currentlyDisplayedCollection = [sectionItems]
+        applyCurrentSearch(orElse: {
+            applySnapshot(collectionToAdd: [
+                (name: "\u{200B}" + sectionItems.type.description, type: sectionItems.type, renditions: sectionItems.renditions)
+            ])
+        })
+    }
+
+    private func applyCurrentSearch(orElse fallback: () -> Void) {
+        guard !currentSearchText.isEmpty else {
+            fallback()
+            return
+        }
+
+        handleControlTextUpdate(currentSearchText)
     }
     
     var splitViewParent: CollapseNotifierSplitViewController? {
@@ -82,7 +128,7 @@ class RenditionListViewController: NSViewController {
                 for: indexPath) as! RenditionTypeHeaderView
             let snapshot = dataSource.snapshot()
             let section = snapshot.sectionIdentifiers[indexPath.section]
-            header.configure(typeLabelText: section.description, numberOfItems: snapshot.numberOfItems(inSection: section))
+            header.configure(typeLabelText: section, numberOfItems: snapshot.numberOfItems(inSection: section))
             return header
         }
         
@@ -98,8 +144,8 @@ class RenditionListViewController: NSViewController {
         collectionView.register(RenditionTypeHeaderView.self,
                                 forSupplementaryViewOfKind: NSCollectionView.elementKindSectionHeader,
                                 withIdentifier: RenditionTypeHeaderView.identifier)
-        addSnapshot(collectionToAdd: collection)
-        
+        addSnapshot(collectionToAdd: namedCollection(collection))
+
         splitViewParent?.handler = { [unowned self] item, didCollapse, _ in
             guard item.viewController.identifier == "RenditionInfo" else { return }
             collectionView.collectionViewLayout = Self.makeLayout(
@@ -140,15 +186,19 @@ class RenditionListViewController: NSViewController {
     }
     
     @discardableResult
-    func addSnapshot(collectionToAdd: RenditionCollection) -> NSDiffableDataSourceSnapshot<RenditionType, Rendition> {
-        var snapshot = NSDiffableDataSourceSnapshot<RenditionType, Rendition>()
+    func addSnapshot(collectionToAdd: NamedRenditionCollection) -> NSDiffableDataSourceSnapshot<String, Rendition> {
+        var snapshot = NSDiffableDataSourceSnapshot<String, Rendition>()
         for item in collectionToAdd {
-            snapshot.appendSections([item.type])
-            snapshot.appendItems(item.renditions, toSection: item.type)
+            snapshot.appendSections([item.name])
+            snapshot.appendItems(item.renditions, toSection: item.name)
         }
-        
+
         dataSource.apply(snapshot, animatingDifferences: !optimizePerformance)
         return snapshot
+    }
+
+    func applySnapshot(collectionToAdd: NamedRenditionCollection) {
+        addSnapshot(collectionToAdd: collectionToAdd)
     }
     
     @discardableResult
@@ -165,12 +215,6 @@ class RenditionListViewController: NSViewController {
         
         // deselect current item
         self.collectionView.deselectAll(nil)
-        
-        // delect section from sidebar
-        let vc = self.splitViewParent?.splitViewItems[0].viewController as? TypesListViewController
-        if let vc {
-            vc.tableView.deselectAll(nil)
-        }
         
         // if we already have an existing info vc then remove it
         if parent.splitViewItems.indices.contains(2) {
@@ -521,14 +565,6 @@ extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromisePr
                 }
             }
         }
-        
-        // update selected sidebar section
-        let vc = self.splitViewParent?.splitViewItems[0].viewController as? TypesListViewController
-        if let vc {
-            vc.ignoreChanges = true
-            vc.tableView.selectRowIndexes(IndexSet(integer: indexPaths.first?.section ?? 0), byExtendingSelection: false)
-            vc.ignoreChanges = false
-        }
     }
     
     func collectionView(_ collectionView: NSCollectionView, didDeselectItemsAt indexPaths: Set<IndexPath>) {}
@@ -612,19 +648,10 @@ extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromisePr
 }
 
 extension RenditionListViewController: NSSearchFieldDelegate {
-    
-    /// Set the types in the sidebar,
-    /// if nil, then this will default to all the types
-    func setSidebarTypes(_ types: [RenditionType]?) {
-        if let sidebar = splitViewParent?.splitViewItems[0].viewController as? TypesListViewController {
-            sidebar.types = types ?? sidebar.allTypes
-            sidebar.tableView.reloadData()
-        }
-    }
-    
     func controlTextDidChange(_ obj: Notification) {
         guard let searchText = (obj.object as? NSSearchField)?.stringValue else { return }
-        
+
+        currentSearchText = searchText
         searchTimer?.invalidate()
         
         if optimizePerformance {
@@ -640,34 +667,18 @@ extension RenditionListViewController: NSSearchFieldDelegate {
     
     private func handleControlTextUpdate(_ searchText: String) {
         if searchText.isEmpty {
-            dataSource.apply(
-                allItemsSnapshot,
-                animatingDifferences: !optimizePerformance
-            )
-            setSidebarTypes(nil)
+            let snapshot = addSnapshot(collectionToAdd: namedCollection(currentlyDisplayedCollection))
+            collectionView.reloadSections(IndexSet(0..<snapshot.sectionIdentifiers.count))
             return
         }
-        
-        var newSidebarTypes: [RenditionType] = []
-        let newCollection: RenditionCollection = collection.compactMap { type, renditions in
-            // query by the renditions that have the search text in their name
-            let newRends = renditions.filter { rend in
-                return rend.name.localizedCaseInsensitiveContains(searchText)
-            }
-            
-            // Don't include the section if no items match the query
-            if newRends.isEmpty {
-                return nil
-            }
-            
-            // the section has renditions that match our description, add it to the sidebar
-            newSidebarTypes.append(type)
-            
-            return (type, newRends)
+
+        let newCollection: RenditionCollection = currentlyDisplayedCollection.compactMap { type, renditions in
+            let newRends = renditions.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+            return newRends.isEmpty ? nil : (type, newRends)
         }
-        
-        addSnapshot(collectionToAdd: newCollection)
-        
-        setSidebarTypes(newSidebarTypes)
+
+        let snapshot = addSnapshot(collectionToAdd: namedCollection(newCollection))
+        // force refresh to update header items count
+        collectionView.reloadSections(IndexSet(0..<snapshot.sectionIdentifiers.count))
     }
 }

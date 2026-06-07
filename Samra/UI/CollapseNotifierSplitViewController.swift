@@ -47,13 +47,6 @@ class CollapseNotifierSplitViewController: NSSplitViewController {
         }
     }
     
-    @objc
-    func goToSection(menuItemSender: NSMenuItem) {
-        if let typesListVC = getTypesListVC() {
-            typesListVC.goToSection(menuItemSender: menuItemSender)
-        }
-    }
-    
     override func splitViewItem(_ item: NSSplitViewItem, didChangeCollapsed didCollapse: Bool, animated: Bool) {
         super.splitViewItem(item, didChangeCollapsed: didCollapse, animated: animated)
         handler?(item, didCollapse, animated)

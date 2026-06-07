@@ -57,8 +57,7 @@ class WindowController: NSWindowController {
             splitViewController.addSplitViewItem(NSSplitViewItem(sidebarWithViewController: localTypesSidebar!))
             splitViewController.addSplitViewItem(NSSplitViewItem(viewController: localRenditionVC!))
                 
-            splitViewController.splitViewItems[0].minimumThickness = 190
-            splitViewController.splitViewItems[0].maximumThickness = 190
+            splitViewController.splitViewItems[0].minimumThickness = 200
                 
             splitViewController.splitViewItems[1].minimumThickness = 450
                 
@@ -128,10 +127,8 @@ class WindowController: NSWindowController {
             }
         }
     }
-}
-
-extension WindowController: NSWindowDelegate {
-    func windowDidBecomeKey(_ notification: Notification) {
+    
+    private func updateShowMenuSections() {
         if let vc = window?.contentViewController as? CollapseNotifierSplitViewController {
             if (vc.getTypesListVC()?.types.count ?? 0) > 0 {
                 // Show & update sections for window (if applicable)
@@ -141,7 +138,16 @@ extension WindowController: NSWindowDelegate {
                     typesSidebar?.menuNeedsUpdate(menu)
                 }
             }
+            else {
+                NSApp.mainMenu?.item(withTitle: "Sections")?.isHidden = true
+            }
         }
+    }
+}
+
+extension WindowController: NSWindowDelegate {
+    func windowDidBecomeKey(_ notification: Notification) {
+        updateShowMenuSections()
     }
     
     func windowDidResignKey(_ notification: Notification) {
@@ -287,11 +293,13 @@ extension WindowController {
                 )
                 
                 // Load sidebar data
-                self.typesSidebar?.load(types: input.collection.map(\.type)) { type in
-                    if let index = self.renditionVC!.dataSource.snapshot().indexOfSection(type) {
-                        self.renditionVC!.collectionView.scrollToItems(at: [IndexPath(item: 0, section: index)], scrollPosition: .top)
-                    }
+                self.typesSidebar?.load(collection: input.collection) { sectionName, lookupName in
+                    self.renditionVC?.filterItems(sectionName: sectionName, lookupName: lookupName)
                 }
+                self.typesSidebar?.selectSection(index: 0)
+                
+                // Update menu bar
+                updateShowMenuSections()
             }
             
             return true
