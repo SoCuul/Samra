@@ -106,6 +106,7 @@ class WindowController: NSWindowController {
         case .diffShow(_, _, _):
             let toolbar = NSToolbar()
             toolbar.delegate = self
+            toolbar.displayMode = .iconOnly
             window.toolbar = toolbar
             window.title = "Diff"
             window.animationBehavior = .documentWindow
@@ -151,14 +152,17 @@ extension WindowController: NSWindowDelegate {
 extension WindowController: NSToolbarDelegate {
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
         switch kind {
-            case .assetCatalog(_), .diffShow(_, _, _):
+            case .assetCatalog(_):
                 var sidebarTrackingSeparator: NSToolbarItem.Identifier?
+                var sidebarSpacer: NSToolbarItem.Identifier?
                 
                 if #available(macOS 11.0, *) {
                     sidebarTrackingSeparator = .sidebarTrackingSeparator
+                    sidebarSpacer = .flexibleSpace
                 }
                 
                 return [
+                    sidebarSpacer,
                     .toggleSidebar,
                     sidebarTrackingSeparator,
                     
@@ -166,6 +170,8 @@ extension WindowController: NSToolbarDelegate {
                     .searchBar
                 ].compactMap { $0 }
                 
+            case .diffShow(_, _, _):
+                return [.searchBar]
             default:
                 return []
         }
