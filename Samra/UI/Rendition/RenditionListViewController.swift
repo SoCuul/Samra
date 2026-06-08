@@ -30,6 +30,10 @@ class RenditionListViewController: NSViewController {
     var collection: RenditionCollection = []
     var renditionsCount = 0
     
+    lazy var zoom = ZoomController { [weak self] zoomLevel in
+        self?.collectionView.collectionViewLayout = Self.makeLayout(zoomLevel: zoomLevel)
+    }
+    
     private var scrollObserver: NSObjectProtocol?
     
     private var currentlyDisplayedCollection: RenditionCollection = []
@@ -136,8 +140,7 @@ class RenditionListViewController: NSViewController {
         collectionView.isSelectable = true
         collectionView.delegate = self
         collectionView.menuProvider = self
-        collectionView.collectionViewLayout = Self.makeLayout(layout: .list)
-        collectionView.stringIdentifier = LayoutMode.list.rawValue
+        collectionView.collectionViewLayout = Self.makeLayout(zoomLevel: zoom.level)
         
         collectionView.register(RenditionCollectionViewItem.self,
                                 forItemWithIdentifier: RenditionCollectionViewItem.reuseIdentifier)
@@ -145,15 +148,6 @@ class RenditionListViewController: NSViewController {
                                 forSupplementaryViewOfKind: NSCollectionView.elementKindSectionHeader,
                                 withIdentifier: RenditionTypeHeaderView.identifier)
         addSnapshot(collectionToAdd: namedCollection(collection))
-
-        splitViewParent?.handler = { [unowned self] item, didCollapse, _ in
-            guard item.viewController.identifier == "RenditionInfo" else { return }
-            collectionView.collectionViewLayout = Self.makeLayout(
-                layout: didCollapse ? .list : .listInspector
-            )
-            
-            collectionView.stringIdentifier = didCollapse ? LayoutMode.list.rawValue : LayoutMode.listInspector.rawValue
-        }
         
         let scrollView = NSScrollView()
         scrollView.verticalScroller = nil
@@ -220,12 +214,6 @@ class RenditionListViewController: NSViewController {
         if parent.splitViewItems.indices.contains(2) {
             parent.removeSplitViewItem(parent.splitViewItems[2])
         }
-        
-        // reset to non-inspector layout
-        if let renditionListVC = parent.splitViewItems[1].viewController as? RenditionListViewController {
-            renditionListVC.collectionView.collectionViewLayout = Self.makeLayout(layout: .list)
-            renditionListVC.stringIdentifier = LayoutMode.list.rawValue
-        }
     }
     
     func exportItemsAtIndexPaths(_ indexPaths: Set<IndexPath>) {
@@ -248,14 +236,19 @@ class RenditionListViewController: NSViewController {
 }
 
 extension RenditionListViewController {
-    static func makeLayout(layout: LayoutMode) -> NSCollectionViewCompositionalLayout {
-        // Items
+    static func makeLayout(zoomLevel: Double) -> NSCollectionViewCompositionalLayout {
         let spacing = CGFloat(15)
-        let minItemWidth = CGFloat(290)
-
+        
+        // Base sizes at zoomLevel == 1.0
+        let baseItemWidth = CGFloat(290)
+        let baseItemHeight = CGFloat(115)
+        
+        let minItemWidth = baseItemWidth * CGFloat(zoomLevel)
+        let itemHeight = baseItemHeight * CGFloat(zoomLevel)
+        
         let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
-                                               heightDimension: .absolute(115))
-    
+                                               heightDimension: .absolute(itemHeight))
+        
         let group = NSCollectionLayoutGroup.custom(layoutSize: groupSize) { environment in
             let availableWidth = environment.container.effectiveContentSize.width - (spacing * 2)
             let columns = max(1, floor(availableWidth / (minItemWidth + spacing)))
@@ -287,7 +280,6 @@ extension RenditionListViewController {
                                                         bottom: 12,
                                                         trailing: spacing)
         section.boundarySupplementaryItems = [titleSupplementary]
-        //section.orthogonalScrollingBehavior = .continuous
         return NSCollectionViewCompositionalLayout(section: section)
     }
 }
@@ -424,6 +416,19 @@ extension RenditionListViewController: MenuProvider {
 // Responder chain
 extension RenditionListViewController: NSUserInterfaceValidations {
     @objc
+    func exportCatalogClicked(_ sender: Any?) {
+        guard let destinationURL = OpenPrompt.getExportDir() else { return }
+        
+        do {
+            try AssetCatalogWrapper.shared.extract(collection: collection, to: destinationURL)
+            NSWorkspace.shared.activateFileViewerSelecting([destinationURL])
+        } catch {
+            NSAlert(title: "Failed to export (some) items", message: error.localizedDescription)
+                .runModal()
+        }
+    }
+    
+    @objc
     func copy(_ sender: Any?) {
         guard let indexPath = collectionView.selectionIndexPaths.first,
               let rendition = dataSource.itemIdentifier(for: indexPath) else { return }
@@ -442,8 +447,22 @@ extension RenditionListViewController: NSUserInterfaceValidations {
         }
     }
     
-    @objc
-    func infoButtonClicked(_ sender: Any?) {
+    func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        switch item.action {
+            case #selector(copy(_:)):
+                return !collectionView.selectionIndexPaths.isEmpty && collectionView.selectionIndexPaths.count <= 1
+                
+            default:
+                break
+        }
+        
+        return responds(to: item.action)
+    }
+}
+
+// Responders handled by parent split view
+extension RenditionListViewController {
+    @objc func infoButtonClicked(_ sender: Any?) {
         guard let ass = CUICommonAssetStorage(path: fileURL.path, forWriting: false) else {
             NSAlert(
                 title: "Failed to display details of Assets.car file",
@@ -466,34 +485,6 @@ extension RenditionListViewController: NSUserInterfaceValidations {
         }
         
         presentAsSheet(NSHostingController(rootView: detailsView))
-    }
-    
-    @objc
-    func exportCatalogClicked(_ sender: Any?) {
-        guard let destinationURL = OpenPrompt.getExportDir() else { return }
-        
-        do {
-            try AssetCatalogWrapper.shared.extract(collection: collection, to: destinationURL)
-            NSWorkspace.shared.activateFileViewerSelecting([destinationURL])
-        } catch {
-            NSAlert(title: "Failed to export (some) items", message: error.localizedDescription)
-                .runModal()
-        }
-    }
-    
-    func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
-        if item.action == #selector(copy(_:)) {
-            return !collectionView.selectionIndexPaths.isEmpty && collectionView.selectionIndexPaths.count <= 1
-        }
-        return responds(to: item.action)
-    }
-}
-
-extension RenditionListViewController {
-    // MARK: - Layout
-    enum LayoutMode: String {
-        case list = "ListLayout"
-        case listInspector = "ListInspectorLayout"
     }
 }
 
@@ -547,9 +538,6 @@ extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromisePr
             splitViewItem.preferredThicknessFraction = 0
             
             parent.addSplitViewItem(splitViewItem)
-            
-            collectionView.collectionViewLayout = Self.makeLayout(layout: .listInspector)
-            collectionView.stringIdentifier = LayoutMode.listInspector.rawValue
             
             // scroll back to item to make sure it's still in view after changing views
             DispatchQueue.main.async {

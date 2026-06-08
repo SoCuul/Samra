@@ -331,6 +331,23 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="View" id="HyV-fh-RgO">
                         <items>
+                            <menuItem title="Zoom In" keyEquivalent="+" id="IML-6G-gyS">
+                                <connections>
+                                    <action selector="zoomIn:" target="-1" id="hOh-Ai-rSD"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Zoom Out" keyEquivalent="-" id="wf3-E2-Fc5">
+                                <connections>
+                                    <action selector="zoomOut:" target="-1" id="ztE-Nw-xdm"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Reset Zoom" keyEquivalent="0" id="2NY-EH-nVx">
+                                <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
+                                <connections>
+                                    <action selector="resetZoom:" target="-1" id="udW-tX-8Ps"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="ovt-xY-TUk"/>
                             <menuItem title="Show Toolbar" keyEquivalent="t" id="snW-S8-Cw5">
                                 <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
                                 <connections>

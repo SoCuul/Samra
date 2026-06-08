@@ -52,3 +52,47 @@ class CollapseNotifierSplitViewController: NSSplitViewController {
         handler?(item, didCollapse, animated)
     }
 }
+
+// Zooming
+extension CollapseNotifierSplitViewController {
+    @objc
+    func zoomIn(_ sender: Any?) {
+        if let renditionVC = getRenditionVC() {
+            renditionVC.zoom.zoomIn()
+        }
+    }
+    
+    @objc
+    func zoomOut(_ sender: Any?) {
+        if let renditionVC = getRenditionVC() {
+            renditionVC.zoom.zoomOut()
+        }
+    }
+    
+    @objc
+    func resetZoom(_ sender: Any?) {
+        if let renditionVC = getRenditionVC() {
+            renditionVC.zoom.resetZoom()
+        }
+    }
+    
+    override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        if let zoom = getRenditionVC()?.zoom {
+            switch item.action {
+                case #selector(zoomIn(_:)):
+                    return zoom.canZoomIn
+                    
+                case #selector(zoomOut(_:)):
+                    return zoom.canZoomOut
+                    
+                case #selector(resetZoom(_:)):
+                    return zoom.canResetZoom
+                    
+                default:
+                    break
+            }
+        }
+        
+        return responds(to: item.action)
+    }
+}

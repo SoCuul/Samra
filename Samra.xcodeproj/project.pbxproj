@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		657A39472FD6597C00730AE6 /* ZoomController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 657A39462FD6597C00730AE6 /* ZoomController.swift */; };
 		65B494002F582DB200517092 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65B493FF2F582DB200517092 /* DocumentController.swift */; };
 		65B494202F58385C00517092 /* Panels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65B4941F2F58385C00517092 /* Panels.swift */; };
 		65B494222F58495400517092 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 65B494212F58495400517092 /* MainMenu.xib */; };
@@ -61,6 +62,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		657A39462FD6597C00730AE6 /* ZoomController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomController.swift; sourceTree = "<group>"; };
 		65B493FF2F582DB200517092 /* DocumentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
 		65B4941F2F58385C00517092 /* Panels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Panels.swift; sourceTree = "<group>"; };
 		65B494212F58495400517092 /* MainMenu.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = MainMenu.xib; sourceTree = "<group>"; };
@@ -202,6 +204,7 @@
 				CE375E6529B6675900CAC2F0 /* AssetCatalogInput.swift */,
 				CE1F1D3529B0ADCE000B288C /* ClosureMenuItem.swift */,
 				65B4947A2F5893C600517092 /* Clipboard.swift */,
+				657A39462FD6597C00730AE6 /* ZoomController.swift */,
 			);
 			path = Backend;
 			sourceTree = "<group>";
@@ -398,6 +401,7 @@
 				65B494002F582DB200517092 /* DocumentController.swift in Sources */,
 				CE7E5D9229B1D3AC0064B91B /* QuickLooKPreviewSource.swift in Sources */,
 				CEEE131029B73B99009C1ACD /* RenditionDiff.swift in Sources */,
+				657A39472FD6597C00730AE6 /* ZoomController.swift in Sources */,
 				CEC3B27C29B14551007E853E /* AssetCatalogDocument.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

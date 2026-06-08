@@ -30,6 +30,9 @@ enum Preferences {
     @Storage(key: "ShowWelcomeViewControllerOnLaunch", defaultValue: true)
     static var showWelcomeVCOnLaunch: Bool
     
+    @Storage(key: "ZoomLevel", defaultValue: 1.0)
+    static var zoomLevel: Double
+    
     /*
     static var recentlyOpenedFilePaths: [String] {
         get {

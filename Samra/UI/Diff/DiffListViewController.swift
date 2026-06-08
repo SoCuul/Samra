@@ -18,6 +18,12 @@ class DiffListViewController: NSViewController {
     var catalog: CUICatalog
     var fileURL: URL
     
+    var collectionView: NSCollectionView!
+    
+    lazy var zoom = ZoomController { [weak self] zoomLevel in
+        self?.collectionView.collectionViewLayout = RenditionListViewController.makeLayout(zoomLevel: zoomLevel)
+    }
+    
     init(diffs: [RenditionDiff], catalog: CUICatalog, fileURL: URL) {
         self.diffs = diffs
         self.catalog = catalog
@@ -31,9 +37,9 @@ class DiffListViewController: NSViewController {
     }
     
     override func loadView() {
-        let collectionView = NSCollectionView()
+        collectionView = NSCollectionView()
         collectionView.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.collectionViewLayout = RenditionListViewController.makeLayout(layout: .list)
+        collectionView.collectionViewLayout = RenditionListViewController.makeLayout(zoomLevel: zoom.level)
         
         dataSource = DataSource(collectionView: collectionView) { collectionView, indexPath, rendition in
             let cell = collectionView.makeItem(withIdentifier: RenditionCollectionViewItem.reuseIdentifier,
@@ -130,5 +136,41 @@ extension DiffListViewController: NSSearchFieldDelegate {
             return diff.rend.name.localizedCaseInsensitiveContains(searchText)
         }
         addSnapshot(diffs: new)
+    }
+}
+
+// Zooming
+extension DiffListViewController: NSUserInterfaceValidations {
+    @objc
+    func zoomIn(_ sender: Any?) {
+        zoom.zoomIn()
+    }
+    
+    @objc
+    func zoomOut(_ sender: Any?) {
+        zoom.zoomOut()
+    }
+    
+    @objc
+    func resetZoom(_ sender: Any?) {
+        zoom.resetZoom()
+    }
+    
+    func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        switch item.action {
+            case #selector(zoomIn(_:)):
+                return zoom.canZoomIn
+                
+            case #selector(zoomOut(_:)):
+                return zoom.canZoomOut
+                
+            case #selector(resetZoom(_:)):
+                return zoom.canResetZoom
+                
+            default:
+                break
+        }
+        
+        return responds(to: item.action)
     }
 }

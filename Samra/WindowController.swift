@@ -211,8 +211,6 @@ extension WindowController: NSToolbarDelegate {
                 return item
             }
         case .infoButton:
-            guard case .assetCatalog(_) = kind else { break }
-                
             let toolbarItem = NSToolbarItem(itemIdentifier: itemIdentifier)
             let button = NSButton()
             if #available(macOS 11, *) {
@@ -222,7 +220,7 @@ extension WindowController: NSToolbarDelegate {
                 button.title = "Info"
             }
             button.action = #selector(RenditionListViewController.infoButtonClicked(_:))
-            button.target = (contentViewController as? NSSplitViewController)?.splitViewItems[1].viewController as? RenditionListViewController
+            button.target = (contentViewController as? CollapseNotifierSplitViewController)?.getRenditionVC()
             button.setButtonType(.momentaryPushIn)
             button.bezelStyle = .texturedRounded
             toolbarItem.view = button
@@ -237,8 +235,6 @@ extension WindowController: NSToolbarDelegate {
         default:
             return NSToolbarItem(itemIdentifier: itemIdentifier)
         }
-        
-        return nil
     }
     
     func toolbar(_ toolbar: NSToolbar, itemIdentifier: NSToolbarItem.Identifier, canBeInsertedAt index: Int) -> Bool {

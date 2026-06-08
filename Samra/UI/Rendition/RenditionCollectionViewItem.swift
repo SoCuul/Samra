@@ -14,6 +14,8 @@ class RenditionCollectionViewItem: NSCollectionViewItem {
     var nameLabel: NSTextField!
     var representationPreview: NSView!
     
+    var circleView: NSView?
+    
     override func loadView() {
         view = NSView()
     }
@@ -21,29 +23,27 @@ class RenditionCollectionViewItem: NSCollectionViewItem {
     func configure(rendition: Rendition) {
         nameLabel = NSTextField(labelWithString: rendition.name)
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
-        nameLabel.maximumNumberOfLines = 0
         nameLabel.alignment = .center
-        nameLabel.lineBreakMode = .byCharWrapping
+        nameLabel.usesSingleLineMode = true
+        nameLabel.lineBreakMode = .byTruncatingMiddle
         
         switch rendition.representation {
         case .color(let cGColor):
             let circleView = NSView()
             circleView.translatesAutoresizingMaskIntoConstraints = false
-            
-            let layer = CALayer()
-            layer.cornerRadius = 20
-            layer.cornerCurve = .circular
-            layer.backgroundColor = cGColor
-            circleView.wantsLayer = false
-            circleView.layer = layer
+            circleView.wantsLayer = true
+            circleView.layer?.backgroundColor = cGColor
+            circleView.layer?.cornerCurve = .circular
             
             view.addSubview(circleView)
             NSLayoutConstraint.activate([
                 circleView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
                 circleView.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -10),
-                circleView.heightAnchor.constraint(equalToConstant: 40),
-                circleView.widthAnchor.constraint(equalToConstant: 40)
+                circleView.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.35),
+                circleView.widthAnchor.constraint(equalTo: circleView.heightAnchor)
             ])
+                
+            self.circleView = circleView
             
             representationPreview = circleView
         case .image(let cGImage):
@@ -114,6 +114,12 @@ class RenditionCollectionViewItem: NSCollectionViewItem {
         layer.masksToBounds = true
         layer.borderColor = NSColor.systemGray.cgColor
         view.layer = layer
+    }
+    
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        
+        circleView?.layer?.cornerRadius = (circleView?.bounds.width ?? 0) / 2
     }
     
     override func prepareForReuse() {
