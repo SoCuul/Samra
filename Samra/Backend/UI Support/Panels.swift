@@ -27,7 +27,7 @@ func uniqueURL(directory: URL, filename: String) -> URL {
 class ArchiveChooserPanel {
     @objc
     static func make(openPanel: NSOpenPanel) -> NSOpenPanel {
-        let button = ClosureBasedButton(checkboxWithTitle: "Treat Bundles as directories", target: nil, action: nil)
+        let button = ClosureBasedButton(checkboxWithTitle: NSLocalizedString("Treat Bundles as directories", comment: ""), target: nil, action: nil)
         button.allowsMixedState = false
         button.setAction {
             switch button.state {
@@ -72,14 +72,17 @@ class SavePrompt {
         guard savePanel.runModal() == .OK, let urlToSaveTo = savePanel.url else { return }
         
         guard let data = NSBitmapImageRep(cgImage: cgImage).representation(using: formatType, properties: [.compressionFactor: 1]) else {
-            NSAlert(title: "Failed to save Image as \(displayFormat)", message: "NSBitmapImageRep representation returned nil.").runModal()
+            NSAlert(
+                title: NSLocalizedString("Failed to save image as ", comment: "") + displayFormat,
+                message: NSLocalizedString("NSBitmapImageRep representation returned nil.", comment: "")
+            ).runModal()
             return
         }
         
         do {
             try data.write(to: urlToSaveTo)
         } catch {
-            NSAlert(title: "Failed to save Image as \(displayFormat)", message: error.localizedDescription).runModal()
+            NSAlert(title: NSLocalizedString("Failed to save image as ", comment: "") + displayFormat, message: error.localizedDescription).runModal()
         }
     }
     
@@ -113,11 +116,11 @@ class SavePrompt {
 class OpenPrompt {
     static func getExportDir() -> URL? {
         let panel = NSOpenPanel()
-        panel.title = "Directory to export to"
+        panel.title = NSLocalizedString("Directory to export to", comment: "")
         panel.canChooseDirectories = true
         panel.canCreateDirectories = true
         panel.canChooseFiles = false
-        panel.prompt = "Export"
+        panel.prompt = NSLocalizedString("Export", comment: "")
         
         if panel.runModal() == .OK, let destinationURL = panel.url {
             return destinationURL

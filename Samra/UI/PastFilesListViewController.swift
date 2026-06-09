@@ -27,7 +27,7 @@ class PastFilesListViewController: NSViewController {
         
         let menu = NSMenu()
         menu.delegate = self
-        menu.addItem(withTitle: "Show in Finder", action: #selector(showInFinder), keyEquivalent: "")
+        menu.addItem(withTitle: NSLocalizedString("Show in Finder", comment: ""), action: #selector(showInFinder), keyEquivalent: "")
         menu.autoenablesItems = false
         tableView.menu = menu
         

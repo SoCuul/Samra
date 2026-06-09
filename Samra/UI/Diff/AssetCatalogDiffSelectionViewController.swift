@@ -18,9 +18,9 @@ class AssetCatalogDiffSelectionViewController: NSViewController {
     typealias DataSource = NSCollectionViewDiffableDataSource<RenditionDiff.Kind, Rendition>
     var dataSource: DataSource!
     
-    var leftCatalogInput: AssetCatalogInput?
-    var rightCatalogInput: AssetCatalogInput?
-    
+    var leftFileURL: URL?
+    var rightFileURL: URL?
+        
     var leftCatalogPathLabel: NSTextField!
     var rightCatalogPathLabel: NSTextField!
     
@@ -32,11 +32,11 @@ class AssetCatalogDiffSelectionViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        let leftButton = NSButton(title: "Left...",
+        let leftButton = NSButton(title: NSLocalizedString("Left", comment: "") + "...",
                                   target: self, action: #selector(leftOrRightButtonClicked(sender:)))
         leftButton.tag = DiffSide.left.rawValue
         
-        let rightButton = NSButton(title: "Right...",
+        let rightButton = NSButton(title: NSLocalizedString("Right", comment: "") + "...",
                                    target: self, action: #selector(leftOrRightButtonClicked(sender:)))
         rightButton.tag = DiffSide.right.rawValue
         
@@ -54,10 +54,15 @@ class AssetCatalogDiffSelectionViewController: NSViewController {
         view.addSubview(leftCatalogPathLabel)
         view.addSubview(rightCatalogPathLabel)
         
-        diffCatalogsButton = NSButton(title: "Start Diff", target: self, action: #selector(diffButtonPressed))
+        diffCatalogsButton = NSButton(title: NSLocalizedString("Start Diff", comment: ""), target: self, action: #selector(diffButtonPressed))
         diffCatalogsButton.translatesAutoresizingMaskIntoConstraints = false
         diffCatalogsButton.isEnabled = false
+        diffCatalogsButton.keyEquivalent = "\r"
         
+        if #available(macOS 11.0, *) {
+            diffCatalogsButton.controlSize = .large
+        }
+
         view.addSubview(diffCatalogsButton)
         
         let previewBackgroundColor = NSColor(red: 0.22, green: 0.21, blue: 0.21, alpha: 1.00)
@@ -65,7 +70,7 @@ class AssetCatalogDiffSelectionViewController: NSViewController {
         leftCatalogPreview.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(leftCatalogPreview)
         
-        let leftCatalogPreviewLabel = NSTextField(labelWithString: "Left")
+        let leftCatalogPreviewLabel = NSTextField(labelWithString: NSLocalizedString("Left", comment: ""))
         leftCatalogPreviewLabel.translatesAutoresizingMaskIntoConstraints = false
         leftCatalogPreviewLabel.alignment = .center
         view.addSubview(leftCatalogPreviewLabel)
@@ -74,7 +79,7 @@ class AssetCatalogDiffSelectionViewController: NSViewController {
         rightCatalogPreview.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(rightCatalogPreview)
         
-        let rightCatalogPreviewLabel = NSTextField(labelWithString: "Right")
+        let rightCatalogPreviewLabel = NSTextField(labelWithString: NSLocalizedString("Right", comment: ""))
         rightCatalogPreviewLabel.translatesAutoresizingMaskIntoConstraints = false
         rightCatalogPreviewLabel.alignment = .center
         view.addSubview(rightCatalogPreviewLabel)
@@ -114,16 +119,23 @@ class AssetCatalogDiffSelectionViewController: NSViewController {
             rightCatalogPathLabel.leadingAnchor.constraint(equalTo: rightButton.trailingAnchor, constant: 10),
             rightCatalogPathLabel.trailingAnchor.constraint(equalTo: leftCatalogPreview.leadingAnchor, constant: -20),
             
-            diffCatalogsButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -26.4),
-            diffCatalogsButton.centerYAnchor.constraint(equalTo: view.bottomAnchor, constant: -25),
+            diffCatalogsButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40),
+            diffCatalogsButton.centerYAnchor.constraint(equalTo: view.bottomAnchor, constant: -32.5),
         ])
     }
     
     override func viewDidAppear() {
         super.viewDidAppear()
         
-        view.window?.title = "Diff Catalogs"
+        view.window?.title = NSLocalizedString("Diff Catalogs", comment: "")
         view.window?.styleMask.remove(.resizable)
+        
+        // DEV: For quick diff testing
+//        validateAndProcessURL(URL(fileURLWithPath: "/Applications/Affinity Photo 2.app"), forSide: .left)
+//        validateAndProcessURL(URL(fileURLWithPath: "/Applications/Affinity Designer 2.app"), forSide: .right)
+//        diffButtonPressed()
+//        view.window?.close()
+        // DEV: For quick diff testing
     }
     
 	func makePreview(color: NSColor, side: DiffSide) -> DiffFilePreviewView {
@@ -134,25 +146,9 @@ class AssetCatalogDiffSelectionViewController: NSViewController {
     
     @objc
     func diffButtonPressed() {
-        guard let left = leftCatalogInput, let right = rightCatalogInput else { return }
-        let rightCollection = right.collection.flatMap(\.renditions)
-        let leftCollection = left.collection.flatMap(\.renditions)
+        guard let leftFileURL, let rightFileURL else { return }
         
-        let diff = leftCollection.difference(from: rightCollection) { rend1, rend2 in
-            return rend1.namedLookup.name == rend2.namedLookup.name
-        }
-        
-        var finalDiffs: [RenditionDiff] = []
-        for meow in diff {
-            switch meow {
-            case .insert(_, let element, _):
-                finalDiffs.append(RenditionDiff(rend: element, kind: .added))
-            case .remove(_, let element, _):
-                finalDiffs.append(RenditionDiff(rend: element, kind: .removed))
-            }
-        }
-        
-        WindowController(kind: .diffShow(finalDiffs, left.catalog, left.fileURL)).showWindow(nil)
+        WindowController(kind: .diffShow(leftFileURL, rightFileURL)).showWindow(nil)
     }
     
     @objc
@@ -166,27 +162,22 @@ class AssetCatalogDiffSelectionViewController: NSViewController {
         // if it's an .app, point to it's .car file
         let urlToChoose = url.pathExtension == "app" ? url.appendingPathComponent("Contents/Resources/Assets.car") : url
         guard FileManager.default.fileExists(atPath: urlToChoose.path) else {
-            NSAlert(title: "Asset Catalog file \(urlToChoose.path) doesn't exist").runModal()
+            NSAlert(title: String(format: NSLocalizedString("Asset Catalog file _filename_ doesn't exist", comment: ""), urlToChoose.path)).runModal()
             return
         }
         
-        do {
-            switch side {
+        switch side {
             case .left:
-                leftCatalogInput = try AssetCatalogInput(fileURL: urlToChoose)
+                leftFileURL = url
                 leftCatalogPathLabel.stringValue = urlToChoose.path
-				leftCatalogPreview.imageView.image = NSWorkspace.shared.icon(forFile: url.path)
+                leftCatalogPreview.imageView.image = NSWorkspace.shared.icon(forFile: url.path)
             case .right:
-                rightCatalogInput = try AssetCatalogInput(fileURL: urlToChoose)
+                rightFileURL = url
                 rightCatalogPathLabel.stringValue = urlToChoose.path
-				rightCatalogPreview.imageView.image = NSWorkspace.shared.icon(forFile: url.path)
-            }
-   
-            diffCatalogsButton.isEnabled = rightCatalogInput != nil && leftCatalogInput != nil
-        } catch {
-            NSAlert(title: "Unable to open Asset Catalog file \(urlToChoose.path)")
-                .runModal()
+                rightCatalogPreview.imageView.image = NSWorkspace.shared.icon(forFile: url.path)
         }
+        
+        diffCatalogsButton.isEnabled = leftFileURL != nil && rightFileURL != nil
     }
     
     func setImageViewForPreview(url: URL, side: DiffSide) {

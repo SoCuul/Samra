@@ -8,6 +8,7 @@
 import Cocoa
 
 class LoadingSheetViewController: NSViewController {
+    private let loadingStr: String
     
     private var progressIndicator: NSProgressIndicator!
     private var label: NSTextField!
@@ -15,10 +16,20 @@ class LoadingSheetViewController: NSViewController {
     var cancelled = false
     var onCancel: (() -> Void)?
     
+    init(loadingStr: String?) {
+        self.loadingStr = loadingStr ?? NSLocalizedString("Loading catalog assets", comment: "")
+        
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 110))
         
-        label = NSTextField(labelWithString: "Loading catalog assets")
+        label = NSTextField(labelWithString: loadingStr)
         label.translatesAutoresizingMaskIntoConstraints = false
         
         progressIndicator = NSProgressIndicator()
@@ -27,7 +38,7 @@ class LoadingSheetViewController: NSViewController {
         progressIndicator.translatesAutoresizingMaskIntoConstraints = false
         progressIndicator.startAnimation(nil)
         
-        let cancelButton = NSButton(title: "Cancel", target: self, action: #selector(cancel))
+        let cancelButton = NSButton(title: NSLocalizedString("Cancel", comment: ""), target: self, action: #selector(cancel))
         cancelButton.translatesAutoresizingMaskIntoConstraints = false
         cancelButton.focusRingType = .none
         cancelButton.keyEquivalent = "\u{1b}" // Escape key

@@ -23,10 +23,10 @@ class AboutViewController: NSViewController {
         titleLabel.font = .systemFont(ofSize: 38)
         
         let version = Bundle.main.infoDictionary?["CFBundleVersion"] as! String
-        let versionLabel = NSTextField(labelWithString: "Version \(version)")
+        let versionLabel = NSTextField(labelWithString: "\(NSLocalizedString("Version", comment: "")) \(version)")
         versionLabel.textColor = .secondaryLabelColor
         
-        let explanation = "An open source macOS Application to browse and edit Asset Catalog files, created by Antoine"
+        let explanation = NSLocalizedString("An open source macOS Application to browse and edit Asset Catalog files, created by Antoine", comment: "")
         let explanationLabel = NSTextField(wrappingLabelWithString: explanation)
         
         explanationLabel.textColor = NSColor(red: 0.60, green: 0.60, blue: 0.60, alpha: 1.00)
@@ -54,16 +54,16 @@ class AboutViewController: NSViewController {
             titleLabel.centerYAnchor.constraint(equalTo: imageView.topAnchor, constant: 32),
             
             versionLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            versionLabel.centerYAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 5),
+            versionLabel.centerYAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 7),
             
             explanationLabel.leadingAnchor.constraint(equalTo: versionLabel.leadingAnchor),
-            explanationLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor),
-            explanationLabel.centerYAnchor.constraint(equalTo: versionLabel.bottomAnchor, constant: 20)
+            explanationLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -15),
+            explanationLabel.centerYAnchor.constraint(equalTo: versionLabel.bottomAnchor, constant: 21)
         ])
         
         let twitterButton = NSButton(title: "Twitter",
                                      target: self, action: #selector(openTwitter))
-        let sourceCodeButton = NSButton(title: "Source Code",
+        let sourceCodeButton = NSButton(title: NSLocalizedString("Source Code", comment: ""),
                                         target: self, action: #selector(openSourceCode))
         
         twitterButton.bezelStyle = .rounded
@@ -104,4 +104,9 @@ class AboutViewController: NSViewController {
         window.standardWindowButton(.miniaturizeButton)?.isEnabled = false
         window.standardWindowButton(.zoomButton)?.isEnabled = false
     }
+}
+
+@available(macOS 14, *)
+#Preview(traits:.fixedLayout(width: 530, height: 219)) {
+    AboutViewController()
 }

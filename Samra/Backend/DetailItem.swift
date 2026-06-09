@@ -31,28 +31,28 @@ struct DetailItemSection: Hashable {
     let items: [DetailItem]
     
     static func from(assetStorage: CUICommonAssetStorage) -> [DetailItemSection] {
-        let toolSection = DetailItemSection(sectionHeader: "Authoring Tool", items: [
-            DetailItem(primaryText: "Tool", secondaryText: assetStorage.authoringTool()),
-            DetailItem(primaryText: "Version", secondaryText: String(cString: assetStorage.versionString())),
+        let toolSection = DetailItemSection(sectionHeader: NSLocalizedString("Authoring Tool", comment: ""), items: [
+            DetailItem(primaryText: NSLocalizedString("Tool", comment: ""), secondaryText: assetStorage.authoringTool()),
+            DetailItem(primaryText: NSLocalizedString("Version", comment: ""), secondaryText: String(cString: assetStorage.versionString())),
         ])
         
-        let argumentsSection = DetailItemSection(sectionHeader: "Arguments", items: [
-            DetailItem(primaryText: "Thinning Arguments", secondaryText: assetStorage.thinningArguments())
+        let argumentsSection = DetailItemSection(sectionHeader: NSLocalizedString("Arguments", comment: ""), items: [
+            DetailItem(primaryText: NSLocalizedString("Thinning Arguments", comment: ""), secondaryText: assetStorage.thinningArguments())
         ])
         
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "E, d MMM yyyy h:mm a"
         let date = Date(timeIntervalSince1970: TimeInterval(assetStorage.storageTimestamp()))
         
-        let dateSection = DetailItemSection(sectionHeader: "Date", items: [
-            DetailItem(primaryText: "Date", secondaryText: dateFormatter.string(from: date)),
-            DetailItem(primaryText: "UNIX Timestamp", secondaryText: assetStorage.storageTimestamp())
+        let dateSection = DetailItemSection(sectionHeader: NSLocalizedString("Date", comment: ""), items: [
+            DetailItem(primaryText: NSLocalizedString("Date", comment: ""), secondaryText: dateFormatter.string(from: date)),
+            DetailItem(primaryText: NSLocalizedString("UNIX Timestamp", comment: ""), secondaryText: assetStorage.storageTimestamp())
         ])
         
-        let coreUIVersionText = assetStorage.responds(to: #selector(CUICommonAssetStorage.coreuiVersion)) ? assetStorage.coreuiVersion().description : "Unknown"
-        let coreUISection = DetailItemSection(sectionHeader: "Other", items: [
-            DetailItem(primaryText: "CoreUI Version", secondaryText: coreUIVersionText),
-            DetailItem(primaryText: "Schema Version", secondaryText: assetStorage.schemaVersion()),
+        let coreUIVersionText = assetStorage.responds(to: #selector(CUICommonAssetStorage.coreuiVersion)) ? assetStorage.coreuiVersion().description : NSLocalizedString("Unknown", comment: "")
+        let coreUISection = DetailItemSection(sectionHeader: NSLocalizedString("Other", comment: ""), items: [
+            DetailItem(primaryText: NSLocalizedString("CoreUI Version", comment: ""), secondaryText: coreUIVersionText),
+            DetailItem(primaryText: NSLocalizedString("Schema Version", comment: ""), secondaryText: assetStorage.schemaVersion()),
         ])
         
         return [toolSection, argumentsSection, dateSection, coreUISection]
@@ -68,30 +68,30 @@ struct DetailItemSection: Hashable {
         
         let diskSize = formatter.string(fromByteCount: Int64(cuiRend.srcData.count))
         
-        let sizeOnDisk = DetailItem(primaryText: "Size On Disk", secondaryText: diskSize)
+        let sizeOnDisk = DetailItem(primaryText: NSLocalizedString("Size On Disk", comment: ""), secondaryText: diskSize)
         var items: [DetailItemSection] = []
 
         switch rendition.type {
         case .rawData:
-            items.append(DetailItemSection(sectionHeader: "Base Attributes", items: [
-                DetailItem(primaryText: "Name", secondaryText: namedLookup.name),
+            items.append(DetailItemSection(sectionHeader: NSLocalizedString("Base Attributes", comment: ""), items: [
+                DetailItem(primaryText: NSLocalizedString("Name", comment: ""), secondaryText: namedLookup.name),
                 sizeOnDisk,
-                DetailItem(primaryText: "Compression", secondaryText:cuiRend.bitmapEncoding())
+                DetailItem(primaryText: NSLocalizedString("Compression", comment: ""), secondaryText:cuiRend.bitmapEncoding())
             ]))
             var details : [DetailItem] = []
             if let data = cuiRend.data() {
                 let size = formatter.string(fromByteCount: Int64(data.count))
-                details.append(DetailItem(primaryText: "Data Length", secondaryText:size))
+                details.append(DetailItem(primaryText: NSLocalizedString("Data Length", comment: ""), secondaryText:size))
 
             }
             if let uti = cuiRend.utiType() {
                 details.append(DetailItem(primaryText: "UTI", secondaryText:uti))
             }
-            items.append(DetailItemSection(sectionHeader: "Data Attributes", items: details))
+            items.append(DetailItemSection(sectionHeader: NSLocalizedString("Data Attributes", comment: ""), items: details))
 
         case .color:
-            items.append(DetailItemSection(sectionHeader: "Base Attributes", items: [
-                DetailItem(primaryText: "Name", secondaryText: cuiRend.name()),
+            items.append(DetailItemSection(sectionHeader: NSLocalizedString("Base Attributes", comment: ""), items: [
+                DetailItem(primaryText: NSLocalizedString("Name", comment: ""), secondaryText: cuiRend.name()),
                 sizeOnDisk,
             ]))
             let cgColor = cuiRend.cgColor().takeUnretainedValue()
@@ -103,23 +103,23 @@ struct DetailItemSection: Hashable {
             nsColor?.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
                 
             var colorItems = [
-                DetailItem(primaryText: "Red", secondaryText: Int(red * 255)),
-                DetailItem(primaryText: "Green", secondaryText: Int(green * 255)),
-                DetailItem(primaryText: "Blue", secondaryText: Int(blue * 255)),
+                DetailItem(primaryText: NSLocalizedString("Red", comment: ""), secondaryText: Int(red * 255)),
+                DetailItem(primaryText: NSLocalizedString("Green", comment: ""), secondaryText: Int(green * 255)),
+                DetailItem(primaryText: NSLocalizedString("Blue", comment: ""), secondaryText: Int(blue * 255)),
             ]
                 
             if alpha != 1 {
-                colorItems.append(DetailItem(primaryText: "Alpha", secondaryText: Int(alpha * 255)))
+                colorItems.append(DetailItem(primaryText: NSLocalizedString("Alpha", comment: ""), secondaryText: Int(alpha * 255)))
             }
             
-            colorItems.append(DetailItem(primaryText: "HEX Code", secondaryText: cgColor.toHexString()))
+            colorItems.append(DetailItem(primaryText: NSLocalizedString("HEX Code", comment: ""), secondaryText: cgColor.toHexString()))
 
-            items.append(DetailItemSection(sectionHeader: "Color Attributes", items: colorItems))
+            items.append(DetailItemSection(sectionHeader: NSLocalizedString("Color Attributes", comment: ""), items: colorItems))
 
         case .svg, .pdf:
-            items.append(DetailItemSection(sectionHeader: "Base Attributes", items: [
-                DetailItem(primaryText: "Rendition Name", secondaryText: cuiRend.name()),
-                DetailItem(primaryText: "Lookup Name", secondaryText: namedLookup.name),
+            items.append(DetailItemSection(sectionHeader: NSLocalizedString("Base Attributes", comment: ""), items: [
+                DetailItem(primaryText: NSLocalizedString("Rendition Name", comment: ""), secondaryText: cuiRend.name()),
+                DetailItem(primaryText: NSLocalizedString("Lookup Name", comment: ""), secondaryText: namedLookup.name),
                 sizeOnDisk,
             ]))
             var size = CGSizeZero
@@ -135,31 +135,31 @@ struct DetailItemSection: Hashable {
             default:
                 break
             }
-            items.append(DetailItemSection(sectionHeader: "Dimensions", items: [
-                DetailItem(primaryText: "Width", secondaryText: size.width),
-                DetailItem(primaryText: "Height", secondaryText: size.height),
+            items.append(DetailItemSection(sectionHeader: NSLocalizedString("Dimensions", comment: ""), items: [
+                DetailItem(primaryText: NSLocalizedString("Width", comment: ""), secondaryText: size.width),
+                DetailItem(primaryText: NSLocalizedString("Height", comment: ""), secondaryText: size.height),
             ]))
 
         default:
-            items.append(DetailItemSection(sectionHeader: "Base Attributes", items: [
-                DetailItem(primaryText: "Rendition Name", secondaryText: cuiRend.name()),
-                DetailItem(primaryText: "Lookup Name", secondaryText: namedLookup.name),
+            items.append(DetailItemSection(sectionHeader: NSLocalizedString("Base Attributes", comment: ""), items: [
+                DetailItem(primaryText: NSLocalizedString("Rendition Name", comment: ""), secondaryText: cuiRend.name()),
+                DetailItem(primaryText: NSLocalizedString("Lookup Name", comment: ""), secondaryText: namedLookup.name),
                 sizeOnDisk,
-                DetailItem(primaryText: "Compression", secondaryText:cuiRend.bitmapEncoding())
+                DetailItem(primaryText: NSLocalizedString("Compression", comment: ""), secondaryText:cuiRend.bitmapEncoding())
             ]))
             let size = cuiRend.unslicedSize()
-            items.append(DetailItemSection(sectionHeader: "Dimensions", items: [
-                DetailItem(primaryText: "Width", secondaryText: size.width),
-                DetailItem(primaryText: "Height", secondaryText: size.height),
-                DetailItem(primaryText: "Scale", secondaryText: cuiRend.scale())
+            items.append(DetailItemSection(sectionHeader: NSLocalizedString("Dimensions", comment: ""), items: [
+                DetailItem(primaryText: NSLocalizedString("Width", comment: ""), secondaryText: size.width),
+                DetailItem(primaryText: NSLocalizedString("Height", comment: ""), secondaryText: size.height),
+                DetailItem(primaryText: NSLocalizedString("Scale", comment: ""), secondaryText: cuiRend.scale())
             ]))
         }
         
         let key = namedLookup.key
-        items.append(DetailItemSection(sectionHeader: "Rendition Information", items: [
-            DetailItem(primaryText: "Display Gamut", secondaryText: Rendition.DisplayGamut(key)),
-            DetailItem(primaryText: "Appearance", secondaryText: namedLookup.appearance),
-            DetailItem(primaryText: "Idiom", secondaryText: Rendition.Idiom(key))
+        items.append(DetailItemSection(sectionHeader: NSLocalizedString("Rendition Information", comment: ""), items: [
+            DetailItem(primaryText: NSLocalizedString("Display Gamut", comment: ""), secondaryText: Rendition.DisplayGamut(key)),
+            DetailItem(primaryText: NSLocalizedString("Appearance", comment: ""), secondaryText: namedLookup.appearance),
+            DetailItem(primaryText: NSLocalizedString("Idiom", comment: ""), secondaryText: Rendition.Idiom(key))
         ]))
         
         return items

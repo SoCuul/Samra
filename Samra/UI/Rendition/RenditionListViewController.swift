@@ -24,7 +24,8 @@ class RenditionListViewController: NSViewController {
     var itemToDeleteIndexPath: IndexPath? = nil
     var lastSelectedIndexPath: IndexPath?
     
-    let fileURL: URL
+    let fileURL: URL?
+    let diffMode: Bool
     
     var catalog: CUICatalog?
     var collection: RenditionCollection = []
@@ -41,14 +42,15 @@ class RenditionListViewController: NSViewController {
     private var optimizePerformance = false
     private var searchTimer: Timer?
     
-    init(fileURL: URL) {
+    init(fileURL: URL?, diffMode: Bool = true) {
         self.fileURL = fileURL
+        self.diffMode = diffMode
         super.init(nibName: nil, bundle: nil)
     }
     
-    func load(catalog: CUICatalog, collection: RenditionCollection) {
-        self.catalog = catalog
+    func load(collection: RenditionCollection, catalog: CUICatalog?) {
         self.collection = collection
+        self.catalog = catalog
         self.renditionsCount = collection.reduce(0) { $0 + $1.renditions.count }
         self.currentlyDisplayedCollection = collection
 
@@ -56,11 +58,12 @@ class RenditionListViewController: NSViewController {
             optimizePerformance = true
         }
 
-        addSnapshot(collectionToAdd: namedCollection(collection))
+        let snapshot = addSnapshot(collectionToAdd: namedCollection(collection))
+        collectionView.reloadSections(IndexSet(0..<snapshot.sectionIdentifiers.count))
     }
 
     private func namedCollection(_ collection: RenditionCollection) -> NamedRenditionCollection {
-        collection.map { (name: $0.type.description, type: $0.type, renditions: $0.renditions) }
+        collection.map { (name: $0.type.localizedDescription, type: $0.type, renditions: $0.renditions) }
     }
 
     func filterItems(sectionName: String?, lookupName: String?) {
@@ -70,7 +73,7 @@ class RenditionListViewController: NSViewController {
             return
         }
 
-        guard let sectionItems = collection.first(where: { $0.type.description == sectionName }) else {
+        guard let sectionItems = collection.first(where: { $0.type.localizedDescription == sectionName }) else {
             currentlyDisplayedCollection = []
             applyCurrentSearch(orElse: { applySnapshot(collectionToAdd: []) })
             return
@@ -88,7 +91,7 @@ class RenditionListViewController: NSViewController {
         currentlyDisplayedCollection = [sectionItems]
         applyCurrentSearch(orElse: {
             applySnapshot(collectionToAdd: [
-                (name: "\u{200B}" + sectionItems.type.description, type: sectionItems.type, renditions: sectionItems.renditions)
+                (name: "\u{200B}" + sectionItems.type.localizedDescription, type: sectionItems.type, renditions: sectionItems.renditions)
             ])
         })
     }
@@ -102,8 +105,8 @@ class RenditionListViewController: NSViewController {
         handleControlTextUpdate(currentSearchText)
     }
     
-    var splitViewParent: CollapseNotifierSplitViewController? {
-        parent as? CollapseNotifierSplitViewController
+    var splitViewParent: CatalogSplitViewController? {
+        parent as? CatalogSplitViewController
     }
     
     required init?(coder: NSCoder) {
@@ -120,7 +123,7 @@ class RenditionListViewController: NSViewController {
             return cell
         }
         
-#warning("Add footers for explanations for multisizeImageSet")
+//#warning("Add footers for explanations for multisizeImageSet")
         dataSource.supplementaryViewProvider = { [unowned self] collectionView, kind, indexPath in
             guard kind == NSCollectionView.elementKindSectionHeader else {
                 return nil
@@ -195,11 +198,8 @@ class RenditionListViewController: NSViewController {
         addSnapshot(collectionToAdd: collectionToAdd)
     }
     
-    @discardableResult
-    func refreshAssetCatalog() async -> Bool {
-        guard let windowController = view.window?.windowController as? WindowController else { return false }
-        
-        return await windowController.loadAssetCatalog(fileURL: fileURL)
+    func refreshAssetCatalog() async {
+        splitViewParent?.displayFromFileURL()
     }
     
     func deselect() {
@@ -289,14 +289,14 @@ extension RenditionListViewController: MenuProvider {
     func collectionView(_ collectionView: NSCollectionView, menuForItemAt indexPath: IndexPath) -> NSMenu? {
         if collectionView.selectionIndexPaths.count > 1 {
             return NSMenu(items: [
-                ClosureMenuItem(title: "Export \(collectionView.selectionIndexPaths.count) items...") {
+                ClosureMenuItem(title: String(format: NSLocalizedString("Export _num_ items", comment: ""), collectionView.selectionIndexPaths.count) + "...") {
                     self.exportItemsAtIndexPaths(collectionView.selectionIndexPaths)
                 }
             ])
         }
         
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
-        let copyName = ClosureMenuItem(title: "Copy Name") {
+        let copyName = ClosureMenuItem(title: NSLocalizedString("Copy Name", comment: "")) {
             Clipboard.copyString(item.name)
         }
         
@@ -304,7 +304,7 @@ extension RenditionListViewController: MenuProvider {
         
         switch item.representation {
         case .image(let cgImage):
-            let copyImage = ClosureMenuItem(title: "Copy Image") {
+            let copyImage = ClosureMenuItem(title: NSLocalizedString("Copy Image", comment: "")) {
                 Clipboard.copyImage(cgImage)
             }
             items.append(copyImage)
@@ -339,20 +339,20 @@ extension RenditionListViewController: MenuProvider {
                 saveImageAsItems.insert(asPDF, at: 0)
             }
             
-            let saveImageAs = NSMenuItem(submenuTitle: "Save Image As...", items: saveImageAsItems)
+            let saveImageAs = NSMenuItem(submenuTitle: NSLocalizedString("Save Image As", comment: "") + "...", items: saveImageAsItems)
             items.insert(saveImageAs, at: 0)
             items.insert(.separator(), at: 1)
                 
-            let exportItem = ClosureMenuItem(title: "Export Item...") {
+            let exportItem = ClosureMenuItem(title: NSLocalizedString("Export Item", comment: "") + "...") {
                 SavePrompt.exportItem(rendition: item)
             }
             items.insert(exportItem, at: 0)
             items.insert(.separator(), at: 1)
         case .color(let cgColor):
-            let copyColor = ClosureMenuItem(title: "Copy Color") {
+            let copyColor = ClosureMenuItem(title: NSLocalizedString("Copy Color", comment: "")) {
                 Clipboard.copyColor(cgColor)
             }
-            let copyRGB = ClosureMenuItem(title: "Copy RGB Values") {
+            let copyRGB = ClosureMenuItem(title: NSLocalizedString("Copy RGB Values", comment: "")) {
                 Clipboard.copyColorRgb(cgColor)
             }
                 
@@ -361,7 +361,7 @@ extension RenditionListViewController: MenuProvider {
             items.insert(.separator(), at: 2)
         case .rawData(let data):
             if let string = String(data:data, encoding:.utf8) {
-                let copyString = ClosureMenuItem(title: "Copy String") {
+                let copyString = ClosureMenuItem(title: NSLocalizedString("Copy String", comment: "")) {
                     Clipboard.copyString(string)
                 }
                 
@@ -393,8 +393,10 @@ extension RenditionListViewController: MenuProvider {
     
     @objc
     func deleteItem(sender: NSButton) {
-        guard let itemToDeleteIndexPath,
-                let item = dataSource.itemIdentifier(for: itemToDeleteIndexPath) else {
+        guard let fileURL,
+              let itemToDeleteIndexPath,
+              let item = dataSource.itemIdentifier(for: itemToDeleteIndexPath)
+        else {
             return
         }
         
@@ -406,7 +408,7 @@ extension RenditionListViewController: MenuProvider {
                 await refreshAssetCatalog()
             }
         } catch {
-            NSAlert(title: "Failed to remove \(item.name)", message: error.localizedDescription)
+            NSAlert(title: NSLocalizedString("Failed to remove", comment: "") + item.name, message: error.localizedDescription)
                 .runModal()
             return
         }
@@ -423,7 +425,7 @@ extension RenditionListViewController: NSUserInterfaceValidations {
             try AssetCatalogWrapper.shared.extract(collection: collection, to: destinationURL)
             NSWorkspace.shared.activateFileViewerSelecting([destinationURL])
         } catch {
-            NSAlert(title: "Failed to export (some) items", message: error.localizedDescription)
+            NSAlert(title: NSLocalizedString("Failed to export (some) items", comment: ""), message: error.localizedDescription)
                 .runModal()
         }
     }
@@ -463,10 +465,12 @@ extension RenditionListViewController: NSUserInterfaceValidations {
 // Responders handled by parent split view
 extension RenditionListViewController {
     @objc func infoButtonClicked(_ sender: Any?) {
+        guard let fileURL else { return }
+        
         guard let ass = CUICommonAssetStorage(path: fileURL.path, forWriting: false) else {
             NSAlert(
-                title: "Failed to display details of Assets.car file",
-                message: "Failed to init CUICommonAssetStorage for \(fileURL.path)"
+                title: NSLocalizedString("Failed to display details of Assets.car file", comment: ""),
+                message: NSLocalizedString("Failed to init CUICommonAssetStorage for", comment: "") + "\(fileURL.path)"
             )
             .runModal()
             return
@@ -508,17 +512,14 @@ extension RenditionListViewController: NSCollectionViewDelegate, NSFilePromisePr
         
         lastSelectedIndexPath = firstIndexPath
         
-        guard let catalog = catalog else { return }
-        
-        let view = RenditionInformationView(rendition: item, catalog: catalog, fileURL: fileURL, canEdit: true, canDelete: true) { [unowned self] change in
+        let view = RenditionInformationView(rendition: item, catalog: catalog, fileURL: fileURL, canEdit: !diffMode, canDelete: !diffMode) { [unowned self] change in
             Task {
                 switch change {
                 case .delete:
                     await refreshAssetCatalog()
                 case .edit:
-                    if await refreshAssetCatalog() {
-                        self.collectionView(collectionView, didSelectItemsAt: indexPaths)
-                    }
+                    await refreshAssetCatalog()
+                    self.collectionView(collectionView, didSelectItemsAt: indexPaths)
                 }
             }
         }

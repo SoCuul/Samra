@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		657A39472FD6597C00730AE6 /* ZoomController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 657A39462FD6597C00730AE6 /* ZoomController.swift */; };
+		657A394F2FD67BAF00730AE6 /* DiffSplitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 657A394E2FD67BAF00730AE6 /* DiffSplitViewController.swift */; };
+		657A39512FD67C6200730AE6 /* CatalogSplitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 657A39502FD67C6200730AE6 /* CatalogSplitViewController.swift */; };
+		65A0D1592FD7901400F196E6 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 65A0D1582FD7901400F196E6 /* Localizable.xcstrings */; };
+		65A0D15D2FD7958300F196E6 /* RenditionDiff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65A0D15C2FD7958300F196E6 /* RenditionDiff.swift */; };
 		65B494002F582DB200517092 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65B493FF2F582DB200517092 /* DocumentController.swift */; };
 		65B494202F58385C00517092 /* Panels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65B4941F2F58385C00517092 /* Panels.swift */; };
 		65B494222F58495400517092 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 65B494212F58495400517092 /* MainMenu.xib */; };
@@ -41,11 +45,8 @@
 		CEA6629029A4E5FF00215B08 /* WelcomeScreenOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEA6628F29A4E5FF00215B08 /* WelcomeScreenOption.swift */; };
 		CEA71A5E29AE760900BEBE93 /* AboutViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEA71A5D29AE760900BEBE93 /* AboutViewController.swift */; };
 		CEC3B27C29B14551007E853E /* AssetCatalogDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEC3B27B29B14551007E853E /* AssetCatalogDocument.swift */; };
-		CEC5EBC729B7CCD6009BA873 /* DiffListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEC5EBC629B7CCD6009BA873 /* DiffListViewController.swift */; };
-		CED4DE3129A626D7008B2B8A /* CollapseNotifierSplitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED4DE3029A626D7008B2B8A /* CollapseNotifierSplitViewController.swift */; };
 		CEE9FA3E2CCA245C00F3F356 /* AssetCatalogWrapper in Frameworks */ = {isa = PBXBuildFile; productRef = CEE9FA3D2CCA245C00F3F356 /* AssetCatalogWrapper */; };
 		CEEA6AB429A515EA00B3CEA9 /* DetailItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEEA6AB329A515EA00B3CEA9 /* DetailItem.swift */; };
-		CEEE131029B73B99009C1ACD /* RenditionDiff.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEEE130F29B73B99009C1ACD /* RenditionDiff.swift */; };
 		CEF987032B974C53002177A2 /* ClosureBasedButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEF987022B974C53002177A2 /* ClosureBasedButton.swift */; };
 /* End PBXBuildFile section */
 
@@ -63,6 +64,10 @@
 
 /* Begin PBXFileReference section */
 		657A39462FD6597C00730AE6 /* ZoomController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomController.swift; sourceTree = "<group>"; };
+		657A394E2FD67BAF00730AE6 /* DiffSplitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffSplitViewController.swift; sourceTree = "<group>"; };
+		657A39502FD67C6200730AE6 /* CatalogSplitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSplitViewController.swift; sourceTree = "<group>"; };
+		65A0D1582FD7901400F196E6 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		65A0D15C2FD7958300F196E6 /* RenditionDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenditionDiff.swift; sourceTree = "<group>"; };
 		65B493FF2F582DB200517092 /* DocumentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
 		65B4941F2F58385C00517092 /* Panels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Panels.swift; sourceTree = "<group>"; };
 		65B494212F58495400517092 /* MainMenu.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = MainMenu.xib; sourceTree = "<group>"; };
@@ -100,12 +105,9 @@
 		CEA6628F29A4E5FF00215B08 /* WelcomeScreenOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeScreenOption.swift; sourceTree = "<group>"; };
 		CEA71A5D29AE760900BEBE93 /* AboutViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutViewController.swift; sourceTree = "<group>"; };
 		CEC3B27B29B14551007E853E /* AssetCatalogDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetCatalogDocument.swift; sourceTree = "<group>"; };
-		CEC5EBC629B7CCD6009BA873 /* DiffListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffListViewController.swift; sourceTree = "<group>"; };
 		CED4DE2E29A62566008B2B8A /* AppKitPrivates.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppKitPrivates.h; sourceTree = "<group>"; };
 		CED4DE2F29A62586008B2B8A /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
-		CED4DE3029A626D7008B2B8A /* CollapseNotifierSplitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollapseNotifierSplitViewController.swift; sourceTree = "<group>"; };
 		CEEA6AB329A515EA00B3CEA9 /* DetailItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailItem.swift; sourceTree = "<group>"; };
-		CEEE130F29B73B99009C1ACD /* RenditionDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenditionDiff.swift; sourceTree = "<group>"; };
 		CEF987022B974C53002177A2 /* ClosureBasedButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClosureBasedButton.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -171,6 +173,7 @@
 				CE3BC0A029A0C626009823CF /* Samra.entitlements */,
 				65B494212F58495400517092 /* MainMenu.xib */,
 				65B494232F584DB600517092 /* main.swift */,
+				65A0D1582FD7901400F196E6 /* Localizable.xcstrings */,
 			);
 			path = Samra;
 			sourceTree = "<group>";
@@ -178,10 +181,10 @@
 		CE3BC0AA29A0E2E7009823CF /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				657A39502FD67C6200730AE6 /* CatalogSplitViewController.swift */,
 				CE3BC0A629A0CC27009823CF /* WelcomeViewController.swift */,
 				CEA6628F29A4E5FF00215B08 /* WelcomeScreenOption.swift */,
 				CE3BC0A829A0D713009823CF /* PastFilesListViewController.swift */,
-				CED4DE3029A626D7008B2B8A /* CollapseNotifierSplitViewController.swift */,
 				CEA71A5D29AE760900BEBE93 /* AboutViewController.swift */,
 				CE1F1D3329B0A4C1000B288C /* MenuableCollectionView.swift */,
 				CEF987022B974C53002177A2 /* ClosureBasedButton.swift */,
@@ -198,13 +201,13 @@
 				CE7E5D9329B1D45B0064B91B /* UI Support */,
 				CED4DE2D29A62558008B2B8A /* AppKitPrivates */,
 				CEEA6AB329A515EA00B3CEA9 /* DetailItem.swift */,
-				CEEE130F29B73B99009C1ACD /* RenditionDiff.swift */,
 				CE3BC0B029A0E990009823CF /* Preferences.swift */,
 				CE7D54A629A1238F00862873 /* Extensions.swift */,
 				CE375E6529B6675900CAC2F0 /* AssetCatalogInput.swift */,
 				CE1F1D3529B0ADCE000B288C /* ClosureMenuItem.swift */,
 				65B4947A2F5893C600517092 /* Clipboard.swift */,
 				657A39462FD6597C00730AE6 /* ZoomController.swift */,
+				65A0D15C2FD7958300F196E6 /* RenditionDiff.swift */,
 			);
 			path = Backend;
 			sourceTree = "<group>";
@@ -240,9 +243,9 @@
 		CEC5EBC529B7CCCA009BA873 /* Diff */ = {
 			isa = PBXGroup;
 			children = (
+				657A394E2FD67BAF00730AE6 /* DiffSplitViewController.swift */,
 				CE375E6329B65D3900CAC2F0 /* AssetCatalogDiffSelectionViewController.swift */,
 				CE3F2D042A02DABC0026A9F9 /* DiffFilePreviewView.swift */,
-				CEC5EBC629B7CCD6009BA873 /* DiffListViewController.swift */,
 			);
 			path = Diff;
 			sourceTree = "<group>";
@@ -359,6 +362,7 @@
 			files = (
 				CE3BC09C29A0C626009823CF /* Assets.xcassets in Resources */,
 				65B494222F58495400517092 /* MainMenu.xib in Resources */,
+				65A0D1592FD7901400F196E6 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -375,24 +379,25 @@
 				CE3BC0A929A0D713009823CF /* PastFilesListViewController.swift in Sources */,
 				CE3BC0AF29A0E345009823CF /* BasicLayoutAnchorsHolding.swift in Sources */,
 				CE1126A929A556C0000AC770 /* RenditionInformationView.swift in Sources */,
+				657A394F2FD67BAF00730AE6 /* DiffSplitViewController.swift in Sources */,
 				CE15D4BF29A3E5D5001D66E6 /* URLHandler.swift in Sources */,
+				657A39512FD67C6200730AE6 /* CatalogSplitViewController.swift in Sources */,
 				CE1673DB29ACDF8100F94683 /* AssetCatalogDetailsView.swift in Sources */,
 				CE7D54AD29A1313000862873 /* TypesListViewController.swift in Sources */,
 				CEF987032B974C53002177A2 /* ClosureBasedButton.swift in Sources */,
 				CE1F1D3429B0A4C1000B288C /* MenuableCollectionView.swift in Sources */,
 				CE375E6429B65D3900CAC2F0 /* AssetCatalogDiffSelectionViewController.swift in Sources */,
 				65B494242F584DB600517092 /* main.swift in Sources */,
+				65A0D15D2FD7958300F196E6 /* RenditionDiff.swift in Sources */,
 				CE7D54B129A14F2200862873 /* RenditionCollectionViewItem.swift in Sources */,
 				65F29BC22FC8021E0030A1C3 /* LoadingSheetViewController.swift in Sources */,
 				CE3BC09829A0C626009823CF /* AppDelegate.swift in Sources */,
-				CEC5EBC729B7CCD6009BA873 /* DiffListViewController.swift in Sources */,
 				CE5AF1A829A2516500C675D8 /* RenditionTypeHeaderView.swift in Sources */,
 				65B494202F58385C00517092 /* Panels.swift in Sources */,
 				CE1F1D3629B0ADCE000B288C /* ClosureMenuItem.swift in Sources */,
 				CEA71A5E29AE760900BEBE93 /* AboutViewController.swift in Sources */,
 				CE7D54A729A1238F00862873 /* Extensions.swift in Sources */,
 				CE3F2D052A02DABC0026A9F9 /* DiffFilePreviewView.swift in Sources */,
-				CED4DE3129A626D7008B2B8A /* CollapseNotifierSplitViewController.swift in Sources */,
 				CE375E6629B6675900CAC2F0 /* AssetCatalogInput.swift in Sources */,
 				CEEA6AB429A515EA00B3CEA9 /* DetailItem.swift in Sources */,
 				CE7D54AF29A1370D00862873 /* RenditionListViewController.swift in Sources */,
@@ -400,7 +405,6 @@
 				CEA6629029A4E5FF00215B08 /* WelcomeScreenOption.swift in Sources */,
 				65B494002F582DB200517092 /* DocumentController.swift in Sources */,
 				CE7E5D9229B1D3AC0064B91B /* QuickLooKPreviewSource.swift in Sources */,
-				CEEE131029B73B99009C1ACD /* RenditionDiff.swift in Sources */,
 				657A39472FD6597C00730AE6 /* ZoomController.swift in Sources */,
 				CEC3B27C29B14551007E853E /* AssetCatalogDocument.swift in Sources */,
 			);
@@ -473,6 +477,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -526,6 +531,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 			};
 			name = Release;

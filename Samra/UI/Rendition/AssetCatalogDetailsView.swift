@@ -31,7 +31,7 @@ struct AssetCatalogDetailsView: View {
                             .multilineTextAlignment(.center)
                     }
                     .contextMenu {
-                        Button("Copy") {
+                        Button(NSLocalizedString("Copy", comment: "")) {
                             NSPasteboard.general.declareTypes([.string], owner: nil)
                             NSPasteboard.general.setString(item.secondaryText, forType: .string)
                         }
@@ -42,7 +42,7 @@ struct AssetCatalogDetailsView: View {
         
         Spacer()
         Divider()
-        Button("Done", action: doneCallback)
+        Button(NSLocalizedString("Done", comment: ""), action: doneCallback)
             .padding(EdgeInsets(top: 11.5, leading: 0, bottom: 20, trailing: 0))
             .modifier { view in
                 if #available(macOS 11, *) {

@@ -25,6 +25,7 @@ extension NSUserInterfaceItemIdentifier: @retroactive ExpressibleByStringLiteral
 extension NSToolbarItem.Identifier {
     static let searchBar = NSToolbarItem.Identifier("SearchBar")
     static let infoButton = NSToolbarItem.Identifier("InfoButton")
+    static let diffSide = NSToolbarItem.Identifier("DiffSide")
 }
 
 extension NSMenu {
@@ -218,7 +219,7 @@ extension Rendition {
                         self = .pdf(data as NSData)
                     }
                     else {
-                        showStringError(rendition.cuiRend.name(), "Failed to get PDF data")
+                        showStringError(rendition.cuiRend.name(), NSLocalizedString("Failed to get PDF data", comment: ""))
                         return nil
                     }
                     
@@ -232,7 +233,7 @@ extension Rendition {
                         self = .svg(String(decoding: data, as: UTF8.self))
                     }
                     else {
-                        showStringError(rendition.cuiRend.name(), "Failed to get SVG data")
+                        showStringError(rendition.cuiRend.name(), NSLocalizedString("Failed to get SVG data", comment: ""))
                         return nil
                     }
                     
@@ -279,7 +280,7 @@ extension Rendition {
         switch exportData {
         case .image(let cgImage):
                 guard let image = self.image else {
-                return showStringError("Failed to generate image")
+                return showStringError(NSLocalizedString("Failed to generate image", comment: ""))
             }
             
             #if os(macOS)
@@ -290,23 +291,78 @@ extension Rendition {
             #endif
             
             guard let data = data else {
-                showStringError("Unable to generate png data for image")
+                showStringError(NSLocalizedString("Unable to generate png data for image", comment: ""))
                 return
             }
             
             do {
                 try data.write(to: destinationURL, options: .atomic)
             } catch {
-                showStringError("Failed to write to \(destinationURL.path): \(error)")
+                showStringError("\(NSLocalizedString("Unable to write to", comment: "")) \(destinationURL.path): \(error)")
             }
         case .pdf(let data):
             do {
                 try data.write(to: destinationURL)
             } catch {
-                showStringError("Unable to write to \(destinationURL.path): \(error.localizedDescription)")
+                showStringError("\(NSLocalizedString("Unable to write to", comment: "")) \(destinationURL.path): \(error.localizedDescription)")
             }
         case .svg(let data):
             SVGDocument(string: data)?.write(to: destinationURL)
         }
+    }
+}
+
+extension RenditionType {
+    public var localizedDescription: String {
+        switch self {
+        case .image:
+            return NSLocalizedString("Image", comment: "")
+        case .icon:
+            return NSLocalizedString("Icon", comment: "")
+        case .imageSet:
+            return NSLocalizedString("Image Set", comment: "")
+        case .multiSizeImageSet:
+            return NSLocalizedString("Multisize Image Set", comment: "")
+        case .pdf:
+            return "PDF"
+        case .color:
+            return NSLocalizedString("Color", comment: "")
+        case .svg:
+            return NSLocalizedString("SVG (Vector)", comment: "")
+        case .rawData:
+            return NSLocalizedString("Raw Data", comment: "")
+        case .unknown:
+            return NSLocalizedString("Unknown", comment: "")
+        }
+    }
+}
+
+public extension CUICatalog {
+    internal func __getRenditionCollection() -> RenditionCollection {
+        var dict: [RenditionType: [Rendition]] = [:]
+        
+        enumerateNamedLookups { lookup in
+            let rend = Rendition(lookup)
+            if var existing = dict[rend.type] {
+                existing.append(rend)
+                dict[rend.type] = existing
+            } else {
+                dict[rend.type] = [rend]
+            }
+        }
+        
+        var arr = RenditionCollection()
+        for (key, value) in dict {
+            // sort Renditions in Alphabetical order
+            let sorted = value.sorted { first, second in first.name < second.name }
+            arr.append((key, sorted))
+        }
+        
+        // sort Types in Alphabetical order
+        arr = arr.sorted { first, second in
+            return first.type.localizedDescription < second.type.localizedDescription
+        }
+        
+        return arr
     }
 }

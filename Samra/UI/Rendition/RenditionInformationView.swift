@@ -14,8 +14,8 @@ struct RenditionInformationView: View {
     @State var showDeleteAlert: Bool = false
     
     var rendition: Rendition
-    var catalog: CUICatalog
-    var fileURL: URL
+    var catalog: CUICatalog?
+    var fileURL: URL?
     var canEdit: Bool
     var canDelete: Bool
     var changeCallback: ((Change) -> Void)?
@@ -35,14 +35,14 @@ struct RenditionInformationView: View {
             
                 .frame(alignment: .center)
                 .contextMenu {
-                    Button("Export Item") {
+                    Button(NSLocalizedString("Export Item", comment: "") + "...") {
                         SavePrompt.exportItem(rendition: rendition)
                     }
                     
                     if #available(macOS 11.0, *) {
                         Divider()
                         
-                        Menu("Save Image As...") {
+                        Menu(NSLocalizedString("Save Image As", comment: "") + "...") {
                             
                             if rendition.type == .svg {
                                 Button("SVG") {
@@ -73,11 +73,11 @@ struct RenditionInformationView: View {
                     
                     Divider()
                     
-                    Button("Copy Name") {
+                    Button(NSLocalizedString("Copy Name", comment: "")) {
                         Clipboard.copyString(rendition.name)
                     }
                     
-                    Button("Copy Image") {
+                    Button(NSLocalizedString("Copy Image", comment: "")) {
                         Clipboard.copyImage(cgImage)
                     }
                 }
@@ -86,17 +86,17 @@ struct RenditionInformationView: View {
                 .fill(Color(NSColor(cgColor: cgColor)!))
                 .frame(width: 130, height: 230, alignment: .center)
                 .contextMenu {
-                    Button("Copy Color") {
+                    Button(NSLocalizedString("Copy Color", comment: "")) {
                         Clipboard.copyColor(cgColor)
                     }
                     
-                    Button("Copy RGB Values") {
+                    Button(NSLocalizedString("Copy RGB Values", comment: "")) {
                         Clipboard.copyColorRgb(cgColor)
                     }
                     
                     Divider()
                     
-                    Button("Copy Name") {
+                    Button(NSLocalizedString("Copy Name", comment: "")) {
                         Clipboard.copyString(rendition.name)
                     }
                 }
@@ -107,35 +107,38 @@ struct RenditionInformationView: View {
                     .font(.body)
                     .padding(5)
                     .contextMenu {
-                        Button("Copy String") {
+                        Button(NSLocalizedString("Copy String", comment: "")) {
                             Clipboard.copyString(string)
                         }
                         
                         Divider()
                         
-                        Button("Copy Name") {
+                        Button(NSLocalizedString("Copy Name", comment: "")) {
                             Clipboard.copyString(rendition.name)
                         }
                     }
             }
             else {
-                Text("No Preview Available")
+                Text(NSLocalizedString("No Preview Available.", comment: ""))
                     .font(.title.italic())
                     .padding(30)
             }
 
 
         default:
-            Text("No Preview Available.")
+            Text(NSLocalizedString("No Preview Available.", comment: ""))
                 .font(.title.italic())
                 .frame(width: 130, height: 230)
         }
         
         HStack {
             if rendition.type == .rawData, rendition.cuiRend.responds(to: #selector(CUIThemeRendition.data)) {
-                Button("Export Data to...") {
-                    guard let data = rendition.cuiRend.data() else { 
-                        NSAlert(title: "Failed to export data", message: "Unable to get data (rendition.cuiRend.data() returned null)")
+                Button(NSLocalizedString("Export Data to", comment: "") + "...") {
+                    guard let data = rendition.cuiRend.data() else {
+                        NSAlert(
+                            title: NSLocalizedString("Copy Image", comment: ""),
+                            message: NSLocalizedString("Unable to get data (rendition.cuiRend.data() returned null)", comment: "")
+                        )
                             .runModal()
                         return
                     }
@@ -146,89 +149,96 @@ struct RenditionInformationView: View {
                         do {
                             try data.write(to: url)
                         } catch {
-                            NSAlert(title: "Error trying to write data to file \(url)", message: error.localizedDescription)
+                            NSAlert(title: NSLocalizedString("Error trying to write data to file", comment: "") + "\(url)", message: error.localizedDescription)
                                 .runModal()
                         }
                     }
                 }
             }
             
-            Button("Edit") {
-                switch rendition.representation {
-                case .color(let cgColor):
-                    let colorPanel = CallbackableColorPanel()
-                    colorPanel.color = NSColor(cgColor: cgColor) ?? colorPanel.color
-                    colorPanel.isContinuous = false
-                    colorPanel.makeKeyAndOrderFront(nil)
+            if canEdit {
+                Button(NSLocalizedString("Edit", comment: "")) {
+                    guard let fileURL else { return }
                     
-                    colorPanel.callback = { nsColor in
-                        do {
-                            try catalog.editItem(rendition, fileURL: fileURL, to: .color(nsColor.cgColor))
-                            changeCallback?(.edit)
-                        } catch {
-                            NSAlert(title: "Failed to edit item", message: error.localizedDescription)
-                                .runModal()
-                        }
+                    switch rendition.representation {
+                        case .color(let cgColor):
+                            let colorPanel = CallbackableColorPanel()
+                            colorPanel.color = NSColor(cgColor: cgColor) ?? colorPanel.color
+                            colorPanel.isContinuous = false
+                            colorPanel.makeKeyAndOrderFront(nil)
+                            
+                            colorPanel.callback = { nsColor in
+                                do {
+                                    try catalog?.editItem(rendition, fileURL: fileURL, to: .color(nsColor.cgColor))
+                                    changeCallback?(.edit)
+                                } catch {
+                                    NSAlert(title: NSLocalizedString("Failed to edit item", comment: ""), message: error.localizedDescription)
+                                        .runModal()
+                                }
+                            }
+                            
+                        case .image(_):
+                            let panel = NSOpenPanel()
+                            panel.canChooseDirectories = false
+                            panel.canChooseFiles = true
+                            if #available(macOS 11, *) {
+                                panel.allowedContentTypes = [.image]
+                            } else {
+                                panel.allowedFileTypes = [kUTTypeImage as String]
+                            }
+                            
+                            if panel.runModal() == .OK, let chosenURL = panel.url {
+                                guard let cgImage = NSImage(contentsOf: chosenURL)?.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+                                    NSAlert(title: NSLocalizedString("Failed to edit item", comment: ""), message: NSLocalizedString("Unable to get image representation of the file selected", comment: "")).runModal()
+                                    return
+                                }
+                                
+                                do {
+                                    try catalog?.editItem(rendition, fileURL: fileURL, to: .image(cgImage))
+                                    changeCallback?(.edit)
+                                } catch {
+                                    NSAlert(title: NSLocalizedString("Failed to edit item", comment: ""), message: error.localizedDescription)
+                                        .runModal()
+                                }
+                            }
+                        default:
+                            break // never supposed to get here
                     }
-                    
-                case .image(_):
-                    let panel = NSOpenPanel()
-                    panel.canChooseDirectories = false
-                    panel.canChooseFiles = true
-                    if #available(macOS 11, *) {
-                        panel.allowedContentTypes = [.image]
-                    } else {
-                        panel.allowedFileTypes = [kUTTypeImage as String]
-                    }
-                    
-                    if panel.runModal() == .OK, let chosenURL = panel.url {
-                        guard let cgImage = NSImage(contentsOf: chosenURL)?.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-                            NSAlert(title: "Failed to edit item", message: "Unable to get image representation of the file selected").runModal()
-                            return
-                        }
-                        
-                        do {
-                            try catalog.editItem(rendition, fileURL: fileURL, to: .image(cgImage))
-                            changeCallback?(.edit)
-                        } catch {
-                            NSAlert(title: "Failed to edit item", message: error.localizedDescription)
-                                .runModal()
-                        }
-                    }
-                default:
-                    break // never supposed to get here
                 }
+                .disabled(!rendition.type.isEditable)
             }
-            .disabled(!canEdit || !rendition.type.isEditable)
             
             if let doneButtonCallback {
-                Button("Done", action: doneButtonCallback)
+                Button(NSLocalizedString("Done", comment: ""), action: doneButtonCallback)
             }
             
-            Button {
-                showDeleteAlert = true
-            } label: {
-                Text("Delete")
-                    .foregroundColor(.red)
+            if canDelete {
+                Button {
+                    showDeleteAlert = true
+                } label: {
+                    Text(NSLocalizedString("Delete", comment: ""))
+                        .foregroundColor(.red)
+                }
             }
-            .disabled(!canDelete)
         }
         
         mainView
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .alert(isPresented: $showDeleteAlert) {
-                let deleteButton: Alert.Button = .destructive(Text("Delete")) {
+                let deleteButton: Alert.Button = .destructive(Text(NSLocalizedString("Delete", comment: ""))) {
+                    guard let fileURL else { return }
+                    
                     do {
-                        try catalog.removeItem(rendition, fileURL: fileURL)
+                        try catalog?.removeItem(rendition, fileURL: fileURL)
                         changeCallback?(.delete)
                     } catch {
-                        NSAlert(title: "Error encountered while trying to delete \(rendition.name)",
+                        NSAlert(title: NSLocalizedString("Error encountered while trying to delete", comment: "") + " \(rendition.name)",
                                 message: error.localizedDescription).runModal()
                     }
                 }
                 
-                return Alert(title: Text("Are you sure you want to delete \(rendition.name)?"),
-                             message: Text("This action cannot be undone"), primaryButton: deleteButton, secondaryButton: .cancel())
+                return Alert(title: Text(String(format: NSLocalizedString("Are you sure you want to delete _filename_", comment: ""), rendition.name)),
+                             message: Text(NSLocalizedString("This action cannot be undone", comment: "")), primaryButton: deleteButton, secondaryButton: .cancel())
             }
     }
     
@@ -258,7 +268,7 @@ struct RenditionInformationView: View {
                             }
                     }
                     .contextMenu {
-                        Button("Copy") {
+                        Button(NSLocalizedString("Copy", comment: "")) {
                             NSPasteboard.general.declareTypes([.string], owner: nil)
                             NSPasteboard.general.setString(item.secondaryText, forType: .string)
                         }

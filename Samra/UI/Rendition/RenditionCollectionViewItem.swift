@@ -77,7 +77,7 @@ class RenditionCollectionViewItem: NSCollectionViewItem {
             representationPreview = imageView
 
         case .rawData(let data):
-            var visibleString = "No Preview Available"
+            var visibleString = NSLocalizedString("No Preview Available.", comment: "")
             if let string = String(data:data, encoding:.utf8) {
                 visibleString = string.count > 500 ? String(string.prefix(500)) : string
             }

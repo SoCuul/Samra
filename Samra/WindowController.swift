@@ -11,10 +11,8 @@ import AssetCatalogWrapper
 class WindowController: NSWindowController {
     var kind: Kind?
     var inputMonitor: Any?
-    var typesSidebar: TypesListViewController?
-    var renditionVC: RenditionListViewController?
     
-    var loadingTask: Task<LoadingSheetViewController?, any Error>?
+    var catalogSplitVC: CatalogSplitViewController?
     
     enum Kind {
         /// The 'Welcome to Samra' screen
@@ -27,7 +25,7 @@ class WindowController: NSWindowController {
         case diffSelection
         
         /// A View Controller to show the diff between 2 asset catalogs
-        case diffShow([RenditionDiff], CUICatalog, URL)
+        case diffShow(URL, URL)
         
         /// Show a View Controller of a rendition collection
         case assetCatalog(URL)
@@ -35,41 +33,35 @@ class WindowController: NSWindowController {
     
     convenience init(kind: Kind) {
         let viewController: NSViewController
-        let splitViewController = CollapseNotifierSplitViewController()
         
-        var localTypesSidebar: TypesListViewController? = nil
-        var localRenditionVC: RenditionListViewController? = nil
+        var localCatalogSplitVC: CatalogSplitViewController? = nil
         
         switch kind {
         case .welcome:
+            let splitVC = NSSplitViewController()
+                
             let welcomeViewController = WelcomeViewController()
             let list = PastFilesListViewController()
-            splitViewController.addSplitViewItem(NSSplitViewItem(viewController: welcomeViewController))
-            splitViewController.addSplitViewItem(NSSplitViewItem(sidebarWithViewController: list))
-            splitViewController.splitViewItems[0].minimumThickness = 380
-            splitViewController.splitViewItems[1].minimumThickness = 205
-            splitViewController.splitViewItems[1].canCollapse = false
-            viewController = splitViewController
+                
+            splitVC.addSplitViewItem(NSSplitViewItem(viewController: welcomeViewController))
+            splitVC.addSplitViewItem(NSSplitViewItem(sidebarWithViewController: list))
+            splitVC.splitViewItems[0].minimumThickness = 380
+            splitVC.splitViewItems[1].minimumThickness = 205
+            splitVC.splitViewItems[1].canCollapse = false
+                
+            viewController = splitVC
         case .assetCatalog(let fileURL):
-            localRenditionVC = RenditionListViewController(fileURL: fileURL)
-            localTypesSidebar = TypesListViewController()
+            localCatalogSplitVC = CatalogSplitViewController(fileURL: fileURL)
             
-            splitViewController.addSplitViewItem(NSSplitViewItem(sidebarWithViewController: localTypesSidebar!))
-            splitViewController.addSplitViewItem(NSSplitViewItem(viewController: localRenditionVC!))
-                
-            splitViewController.splitViewItems[0].minimumThickness = 200
-                
-            splitViewController.splitViewItems[1].minimumThickness = 450
-                
-            NSApp.mainMenu?.item(withTitle: "Sections")?.submenu?.delegate = localTypesSidebar
-                
-            viewController = splitViewController
+            viewController = localCatalogSplitVC!
         case .aboutPanel:
             viewController = AboutViewController()
         case .diffSelection:
             viewController = AssetCatalogDiffSelectionViewController()
-        case .diffShow(let diffs, let catalog, let fileURL):
-            viewController = DiffListViewController(diffs: diffs, catalog: catalog, fileURL: fileURL)
+        case .diffShow(let leftFileURL, let rightFileURL):
+            localCatalogSplitVC = DiffSplitViewController(leftFileURL: leftFileURL, rightFileURL: rightFileURL)
+                
+            viewController = localCatalogSplitVC!
         }
         
         let window = NSWindow(contentViewController: viewController)
@@ -78,8 +70,7 @@ class WindowController: NSWindowController {
         self.init(window: window)
         
         self.kind = kind
-        self.typesSidebar = localTypesSidebar
-        self.renditionVC = localRenditionVC
+        self.catalogSplitVC = localCatalogSplitVC
         
         switch kind {
         case .assetCatalog(let fileURL):
@@ -101,13 +92,21 @@ class WindowController: NSWindowController {
             window.makeTitleBarTransparentAndUnresizable()
             window.title = "Samra"
         case .diffSelection:
-            window.title = "Diff"
-        case .diffShow(_, _, _):
+                window.title = NSLocalizedString("Diff Catalogs", comment: "")
+        case .diffShow(_, _):
             let toolbar = NSToolbar()
             toolbar.delegate = self
             toolbar.displayMode = .iconOnly
+                
+            if #available(macOS 13.0, *) {
+                toolbar.centeredItemIdentifiers = [.diffSide]
+            }
+            else {
+                toolbar.centeredItemIdentifier = .diffSide
+            }
+                
             window.toolbar = toolbar
-            window.title = "Diff"
+            window.title = NSLocalizedString("Catalog Diff", comment: "")
             window.animationBehavior = .documentWindow
             window.delegate = self
         }
@@ -119,46 +118,24 @@ class WindowController: NSWindowController {
                 window.close()
             }
         }
-        
-        // Load asset catalog data
-        if case .assetCatalog(let fileURL) = kind {
-            Task.detached(priority: .userInitiated) {
-                await self.loadAssetCatalog(fileURL: fileURL)
-            }
-        }
-    }
-    
-    private func updateShowMenuSections() {
-        if let vc = window?.contentViewController as? CollapseNotifierSplitViewController {
-            if (vc.getTypesListVC()?.types.count ?? 0) > 0 {
-                // Show & update sections for window (if applicable)
-                NSApp.mainMenu?.item(withTitle: "Sections")?.isHidden = false
-                NSApp.mainMenu?.item(withTitle: "Sections")?.submenu?.delegate = typesSidebar
-                if let menu = NSApp.mainMenu {
-                    typesSidebar?.menuNeedsUpdate(menu)
-                }
-            }
-            else {
-                NSApp.mainMenu?.item(withTitle: "Sections")?.isHidden = true
-            }
-        }
     }
 }
 
 extension WindowController: NSWindowDelegate {
     func windowDidBecomeKey(_ notification: Notification) {
-        updateShowMenuSections()
+        catalogSplitVC?.updateShowMenuSections()
     }
     
     func windowDidResignKey(_ notification: Notification) {
-        NSApp.mainMenu?.item(withTitle: "Sections")?.isHidden = true
+        NSApp.mainMenu?.item(withTitle: sectionsItemName)?.isHidden = true
+        NSApp.mainMenu?.item(withTitle: sectionsItemName)?.isEnabled = false
     }
 }
 
 extension WindowController: NSToolbarDelegate {
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
         switch kind {
-            case .assetCatalog(_):
+            case .assetCatalog(_), .diffShow(_, _):
                 var sidebarTrackingSeparator: NSToolbarItem.Identifier?
                 var sidebarSpacer: NSToolbarItem.Identifier?
                 
@@ -167,17 +144,26 @@ extension WindowController: NSToolbarDelegate {
                     sidebarSpacer = .flexibleSpace
                 }
                 
-                return [
+                var additionalItems: [NSToolbarItem.Identifier] = []
+                
+                switch kind {
+                    case .assetCatalog(_):
+                        additionalItems.append(NSToolbarItem.Identifier.infoButton)
+                    case .diffShow(_, _):
+                        additionalItems.append(NSToolbarItem.Identifier.diffSide)
+                        additionalItems.append(NSToolbarItem.Identifier.flexibleSpace)
+                    default:
+                        break
+                }
+                                
+                return ([
                     sidebarSpacer,
                     .toggleSidebar,
                     sidebarTrackingSeparator,
-                    
-                    .infoButton,
+                ] + additionalItems + [
                     .searchBar
-                ].compactMap { $0 }
-                
-            case .diffShow(_, _, _):
-                return [.searchBar]
+                ]).compactMap { $0 }
+            
             default:
                 return []
         }
@@ -217,20 +203,48 @@ extension WindowController: NSToolbarDelegate {
                 button.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)?
                     .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 15, weight: .regular))
             } else {
-                button.title = "Info"
+                button.title = NSLocalizedString("Info", comment: "")
             }
             button.action = #selector(RenditionListViewController.infoButtonClicked(_:))
-            button.target = (contentViewController as? CollapseNotifierSplitViewController)?.getRenditionVC()
+            button.target = (contentViewController as? CatalogSplitViewController)?.renditionVC
             button.setButtonType(.momentaryPushIn)
             button.bezelStyle = .texturedRounded
             toolbarItem.view = button
-            toolbarItem.label = "Info"
-            toolbarItem.toolTip = "Get Info"
+            toolbarItem.label = NSLocalizedString("Info", comment: "")
+            toolbarItem.toolTip = NSLocalizedString("Get Info", comment: "")
             
 //            toolbarItem.action = #selector(RenditionListViewController.infoPopoverItemClicked(sender:))
 //            toolbarItem.target = (contentViewController as? NSSplitViewController)?.splitViewItems[1].viewController as? RenditionListViewController
 //            toolbarItem.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
 //            toolbarItem.isEnabled = true
+            return toolbarItem
+                
+        case .diffSide:
+            let toolbarItem = NSToolbarItem(itemIdentifier: itemIdentifier)
+            
+            // Segmented control
+            let segmented = NSSegmentedControl(
+                labels: [
+                    NSLocalizedString("Added", comment: ""),
+                    NSLocalizedString("Removed", comment: "")
+                ],
+                trackingMode: .selectOne,
+                target: catalogSplitVC,
+                action: #selector(DiffSplitViewController.toolbarDiffSegmentChanged(_:))
+            )
+            segmented.segmentStyle = .texturedRounded
+            segmented.setWidth(92, forSegment: 0)
+            segmented.setWidth(92, forSegment: 1)
+            segmented.selectedSegment = 0
+            segmented.translatesAutoresizingMaskIntoConstraints = false
+            
+            if #available(macOS 11.0, *) {
+                segmented.controlSize = .large
+            }
+            
+            toolbarItem.view = segmented
+            toolbarItem.label = NSLocalizedString("Diff Kind", comment: "")
+            toolbarItem.toolTip = NSLocalizedString("View added/removed diffs", comment: "")
             return toolbarItem
         default:
             return NSToolbarItem(itemIdentifier: itemIdentifier)
@@ -239,81 +253,5 @@ extension WindowController: NSToolbarDelegate {
     
     func toolbar(_ toolbar: NSToolbar, itemIdentifier: NSToolbarItem.Identifier, canBeInsertedAt index: Int) -> Bool {
         return true
-    }
-}
-
-extension WindowController {
-    func dismissProgressVC() {
-        Task {
-            // Cancel/close progress sheet
-            loadingTask?.cancel()
-            
-            if let progressVC = try? await loadingTask?.value {
-                progressVC.dismiss(nil)
-            }
-        }
-    }
-    
-    @discardableResult
-    func loadAssetCatalog(fileURL: URL) async -> Bool {
-        loadingTask = Task { [weak self] in
-            do {
-                try await Task.sleep(nanoseconds: 100_000_000)
-                
-                let progressVC = LoadingSheetViewController()
-                progressVC.onCancel = { [weak self] in
-                    self?.loadingTask?.cancel()
-                }
-                
-                self?.contentViewController?.presentAsSheet(progressVC)
-                
-                return progressVC
-            }
-            catch {
-                return nil
-            }
-        }
-        
-        do {
-            let input = try await Task.detached(priority: .userInitiated) {
-                try AssetCatalogInput(fileURL: fileURL)
-            }.value
-            
-            await MainActor.run {
-                self.dismissProgressVC()
-                
-                // Load asset collection view
-                self.renditionVC?.load(
-                    catalog: input.catalog,
-                    collection: input.collection
-                )
-                
-                // Load sidebar data
-                self.typesSidebar?.load(collection: input.collection) { sectionName, lookupName in
-                    self.renditionVC?.filterItems(sectionName: sectionName, lookupName: lookupName)
-                }
-                self.typesSidebar?.selectSection(index: 0)
-                
-                // Update menu bar
-                updateShowMenuSections()
-            }
-            
-            return true
-        }
-        catch {
-            await MainActor.run {
-                self.dismissProgressVC()
-                
-                // Show error
-                DispatchQueue.main.async {
-                    let alert = NSAlert()
-                    alert.messageText = "Unable to load Assets file"
-                    alert.informativeText = "Error: \(error.localizedDescription)"
-                    alert.runModal()
-                }
-            }
-            
-            return false
-        }
     }
 }

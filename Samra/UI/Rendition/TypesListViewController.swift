@@ -122,7 +122,7 @@ extension TypesListViewController: NSOutlineViewDelegate {
             case .section(let section):
                 let imageView = NSImageView(image: NSImage(systemName: section.type.displayIconName))
                 
-                let textField = NSTextField(labelWithString: section.type.description)
+                let textField = NSTextField(labelWithString: section.type.localizedDescription)
                 textField.maximumNumberOfLines = 1
                 
                 views.append(imageView)
@@ -139,7 +139,7 @@ extension TypesListViewController: NSOutlineViewDelegate {
             case .all:
                 let imageView = NSImageView(image: NSImage(systemName: "rectangle.stack"))
                 
-                let textField = NSTextField(labelWithString: "All Items")
+                let textField = NSTextField(labelWithString: NSLocalizedString("All Items", comment: ""))
                 textField.maximumNumberOfLines = 1
                 
                 views.append(imageView)
@@ -216,7 +216,7 @@ extension TypesListViewController: NSOutlineViewDelegate {
                 break
         }
         
-        changeHandler?(sectionType?.description as? String, name)
+        changeHandler?(sectionType?.localizedDescription as? String, name)
     }
 }
 
@@ -256,7 +256,7 @@ extension TypesListViewController: NSOutlineViewDataSource {
 extension TypesListViewController : NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         // we just want to modify the "Sections" section
-        guard let submenu = menu.item(withTitle: "Sections")?.submenu else {
+        guard let submenu = menu.item(withTitle: NSLocalizedString("Sections", comment: ""))?.submenu else {
             return
         }
         
@@ -264,7 +264,7 @@ extension TypesListViewController : NSMenuDelegate {
         submenu.removeAllItems()
         
         let allItemsMenuItem = NSMenuItem(
-            title: "All Items",
+            title: NSLocalizedString("All Items", comment: ""),
             action: #selector(menuSelectSection),
             keyEquivalent: "0",
             tag: 0
@@ -279,7 +279,7 @@ extension TypesListViewController : NSMenuDelegate {
             // so that it's less confusing to the user,
             // ie, if `Color` was the first section, this would make it cmd 1
             let menuItem = NSMenuItem(
-                title: item.description,
+                title: item.localizedDescription,
                 action: #selector(menuSelectSection),
                 keyEquivalent: (index + 1).description,
                 tag: index + 2

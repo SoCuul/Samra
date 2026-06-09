@@ -32,13 +32,13 @@ func parseCatalogURL(_ url: URL) -> URL? {
             }
             else {
                 Task { @MainActor in
-                    NSAlert(title: "Assets.car file does not exist for selected application", message: url.path).runModal()
+                    NSAlert(title: NSLocalizedString("Assets.car file does not exist for selected application", comment: ""), message: url.path).runModal()
                 }
                 return nil
             }
             
         default:
-            NSAlert(title: "File has unrecognized extension \"\(url.pathExtension)\"").runModal()
+            NSAlert(title: NSLocalizedString("File has unrecognized extension", comment: "") + "\"\(url.pathExtension)\"").runModal()
             return nil
     }
     

@@ -20,10 +20,10 @@ class WelcomeViewController: NSViewController {
         super.viewDidLoad()
         
         let appIcon = NSImageView(image: NSApplication.shared.applicationIconImage)
-        let welcomeTextLabel = NSTextField(labelWithString: "Welcome to Samra")
+        let welcomeTextLabel = NSTextField(labelWithString: NSLocalizedString("Welcome to Samra", comment: ""))
         welcomeTextLabel.font = .systemFont(ofSize: 30, weight: .semibold)
         
-        let subtitleLabel = NSTextField(labelWithString: "Created by Antoine")
+        let subtitleLabel = NSTextField(labelWithString: NSLocalizedString("Created by Antoine", comment: ""))
         subtitleLabel.textColor = .secondaryLabelColor
         
         let stackView = NSStackView(views: [appIcon, welcomeTextLabel, subtitleLabel])
@@ -38,8 +38,8 @@ class WelcomeViewController: NSViewController {
         ])
         
         let openFolderOption = WelcomeScreenOption(
-            primaryText: "Open Assets File",
-            secondaryText: "Browse and Edit Assets Files on your Mac",
+            primaryText: NSLocalizedString("Open Asset Catalog", comment: ""),
+            secondaryText: NSLocalizedString("Browse and Edit Asset Catalogs on your Mac", comment: ""),
             image: NSImage(systemName: "folder")) {
                 NSDocumentController.shared.openDocument(nil)
             }
@@ -47,7 +47,7 @@ class WelcomeViewController: NSViewController {
         openFolderOption.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(openFolderOption)
         
-        let diffCatalogsOption = WelcomeScreenOption(primaryText: "Diff Catalogs", secondaryText: "Diff 2 different Asset Catalogs on your Mac", image: NSImage(systemName: "doc.plaintext")) {
+        let diffCatalogsOption = WelcomeScreenOption(primaryText: NSLocalizedString("Diff Catalogs", comment: ""), secondaryText: NSLocalizedString("Diff 2 different Asset Catalogs on your Mac", comment: ""), image: NSImage(systemName: "doc.plaintext")) {
             WindowController(kind: .diffSelection).showWindow(nil)
         }
         
@@ -83,7 +83,7 @@ class WelcomeViewController: NSViewController {
             closeWindowButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8)
         ])
         
-        let showThisWindowButton = NSButton(title: "Show this window when Samra launches",
+        let showThisWindowButton = NSButton(title: NSLocalizedString("Show this window when Samra launches", comment: ""),
                                             target: self,
                                             action: nil)
         showThisWindowButton.setButtonType(.switch)

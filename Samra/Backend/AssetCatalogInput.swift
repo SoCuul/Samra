@@ -8,8 +8,8 @@
 import AssetCatalogWrapper
 
 struct AssetCatalogInput {
-    let fileURL: URL
-    let catalog: CUICatalog
+    let fileURL: URL?
+    let catalog: CUICatalog?
     let collection: RenditionCollection
     
     init(fileURL: URL, catalog: CUICatalog, collection: RenditionCollection) {
@@ -23,5 +23,11 @@ struct AssetCatalogInput {
         self.catalog = catalog
         self.collection = collection
         self.fileURL = fileURL
+    }
+    
+    init(collection: RenditionCollection) {
+        self.fileURL = nil
+        self.catalog = nil
+        self.collection = collection
     }
 }
